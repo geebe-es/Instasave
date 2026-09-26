@@ -1,0 +1,6 @@
+fastapi
+uvicorn[standard]
+instaloader
+yt-dlp
+pydantic
+python-multipart

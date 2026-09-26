@@ -1,0 +1,14 @@
+﻿node_modules/
+.venv/
+__pycache__/
+*.pyc
+dist/
+dist-python/
+release/
+.desktop-build/
+.tools/
+.env
+.env.local
+downloads/
+*.tsbuildinfo
+test-results/

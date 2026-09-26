@@ -1,0 +1,20 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="instasave-gradient" x1="85" y1="426" x2="428" y2="77" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFB000"/>
+      <stop offset=".48" stop-color="#FF3D81"/>
+      <stop offset="1" stop-color="#7D3DFA"/>
+    </linearGradient>
+    <filter id="shadow" x="34" y="48" width="444" height="440" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#2B1157" flood-opacity=".26"/>
+    </filter>
+  </defs>
+  <g filter="url(#shadow)">
+    <rect x="61" y="61" width="390" height="390" rx="116" fill="url(#instasave-gradient)"/>
+    <path d="M170 164C170 150.745 180.745 140 194 140H292L342 190V340C342 353.255 331.255 364 318 364H194C180.745 364 170 353.255 170 340V164Z" fill="white" fill-opacity=".16"/>
+    <path d="M292 140V178C292 184.627 297.373 190 304 190H342" fill="white" fill-opacity=".26"/>
+    <path d="M256 193V292" stroke="white" stroke-width="25" stroke-linecap="round"/>
+    <path d="M205 261L256 312L307 261" stroke="white" stroke-width="25" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M190 345H322" stroke="white" stroke-width="25" stroke-linecap="round"/>
+  </g>
+</svg>

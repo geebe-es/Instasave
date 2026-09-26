@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Baixe imagens e vídeos públicos do Instagram através de links, de forma rápida, simples e em alta qualidade." />
+    <meta property="og:title" content="InstaSave — Baixe mídias públicas" />
+    <meta property="og:description" content="Baixe imagens e vídeos públicos do Instagram com praticidade." />
+    <meta name="theme-color" content="#100b22" />
+    <title>InstaSave — Baixar vídeos e imagens em alta qualidade</title>
+    <link rel="icon" href="/assets/brand/instasave-icon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/styles.css" />
+    <link rel="stylesheet" href="/results.css" />
+  </head>
+  <body>
+    <div class="aurora one"></div><div class="aurora two"></div>
+    <header class="container"><a class="brand" href="#inicio" aria-label="InstaSave, início"><img src="/assets/brand/instasave-icon.svg" alt="" /><span>Insta<span>Save</span></span></a><nav><a href="#como-funciona">Como funciona</a><a href="#faq">FAQ</a><a class="nav-cta" href="#baixar">Baixar agora <span>↓</span></a></nav></header>
+    <main>
+      <section class="hero container" id="inicio">
+        <div class="eyebrow"><i></i> Rápido, simples e seguro</div>
+        <h1>Baixe imagens e vídeos do Instagram <em>em alta qualidade.</em></h1>
+        <p class="lead">Cole o link de uma publicação pública e faça o download da mídia disponível com a melhor qualidade encontrada.</p>
+        <div class="downloader" id="baixar">
+          <form id="download-form" novalidate><label class="sr-only" for="instagram-url">Link da publicação do Instagram</label><div class="input-wrap"><span class="link-icon">⌁</span><input id="instagram-url" name="url" inputmode="url" autocomplete="url" placeholder="Cole aqui o link do Instagram..." /><button type="button" class="paste" id="paste-button">Colar link</button></div><button class="download-button" type="submit"><span>↓</span> Baixar mídia</button></form>
+          <p class="form-note"><span>✓</span> Sem login, senha ou cookies. Use apenas conteúdo público que você tenha autorização para baixar.</p>
+          <div class="status" id="status" aria-live="polite" hidden></div>
+          <div class="media-results" id="media-results" aria-live="polite" hidden></div>
+        </div>
+        <div class="trust"><span>✓ Melhor mídia pública disponível</span><span>✓ Funciona em qualquer dispositivo</span><span>✓ Arquivos temporários</span></div>
+      </section>
+      <section class="how container" id="como-funciona"><div class="section-heading"><div><span class="overline">Como funciona</span><h2>Três passos, sem complicação.</h2></div><p>Um fluxo direto para salvar sua mídia quando ela estiver publicamente disponível.</p></div><div class="steps"><article><b>01</b><div class="step-icon">↗</div><h3>Copie o link</h3><p>Abra uma publicação pública e copie o link no Instagram.</p></article><article><b>02</b><div class="step-icon">⌁</div><h3>Cole no InstaSave</h3><p>Insira o link no campo acima para analisar a publicação.</p></article><article><b>03</b><div class="step-icon">↓</div><h3>Baixe sua mídia</h3><p>Escolha o arquivo encontrado e salve no seu dispositivo.</p></article></div></section>
+      <section class="faq container" id="faq"><div class="section-heading"><div><span class="overline">Perguntas frequentes</span><h2>Tudo o que você precisa saber.</h2></div></div><div class="faq-grid"><details open><summary>Preciso instalar algum programa?<span>+</span></summary><p>Não. O InstaSave funciona diretamente pelo navegador.</p></details><details><summary>Preciso entrar na minha conta do Instagram?<span>+</span></summary><p>Não. Nunca pedimos login, senha, cookies ou credenciais.</p></details><details><summary>Posso baixar qualquer perfil?<span>+</span></summary><p>Somente conteúdo publicamente acessível e sujeito às regras aplicáveis.</p></details><details><summary>A qualidade será original?<span>+</span></summary><p>Disponibilizamos a maior qualidade pública encontrada, sem prometer uma qualidade que a fonte não ofereça.</p></details></div></section>
+    </main>
+    <footer class="container"><a class="brand" href="#inicio"><img src="/assets/brand/instasave-icon.svg" alt="" /><span>Insta<span>Save</span></span></a><p>© <span id="year"></span> InstaSave. Use com responsabilidade.</p><div><a href="#">Privacidade</a><a href="#">Termos</a></div></footer>
+    <script src="/app.js"></script>
+  </body>
+</html>
