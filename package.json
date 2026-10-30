@@ -1,0 +1,32 @@
+{
+  "name": "instasave-desktop",
+  "version": "1.0.0",
+  "description": "InstaSave — imagens e vídeos públicos em alta qualidade",
+  "author": "InstaSave",
+  "private": true,
+  "main": "electron/main.cjs",
+  "scripts": {
+    "setup": "node scripts/setup.cjs",
+    "electron:dev": "node scripts/desktop.cjs dev",
+    "python:build": "node scripts/desktop.cjs python",
+    "build:web": "npm --prefix frontend run build",
+    "build:desktop": "node scripts/desktop.cjs build",
+    "dist:win": "node scripts/desktop.cjs release",
+    "release:win": "npm run dist:win",
+    "test:desktop": "node --test tests/desktop.test.cjs",
+    "test:ui": "node --test tests/motion-ui.test.cjs"
+  },
+  "desktop": {
+    "productName": "InstaSave",
+    "appId": "app.instasave.desktop",
+    "copyright": "Copyright © 2026 InstaSave"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "electron": "44.4.5",
+    "electron-builder": "26.15.3",
+    "esbuild": "0.28.2",
+    "png-to-ico": "3.0.2",
+    "sharp": "0.35.4"
+  }
+}

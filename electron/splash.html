@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; object-src 'none'; base-uri 'none'"><title>InstaSave</title><link rel="stylesheet" href="splash.css"></head>
+<body>
+<button id="close" aria-label="Fechar">×</button>
+<main>
+  <div class="scene" aria-hidden="true">
+    <span class="aurora aurora--one"></span>
+    <span class="aurora aurora--two"></span>
+    <span class="orbit orbit--one"><i></i></span>
+    <span class="orbit orbit--two"><i></i></span>
+    <span class="card-float card-float--one"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m5 15.5 4.2-4.2 3 3 4.3-4.3 2.5 2.5"/><circle cx="9.2" cy="9.6" r="1.1"/></svg></span>
+    <span class="card-float card-float--two"><svg viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg></span>
+    <span class="card-float card-float--three"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 5v14"/><path d="m11 9.2 4.6 2.8-4.6 2.8z"/></svg></span>
+    <span class="spark spark--one"></span>
+    <span class="spark spark--two"></span>
+    <span class="spark spark--three"></span>
+  </div>
+  <div class="brand" aria-hidden="true">
+    <span class="brand__halo"></span>
+    <span class="brand__ring"></span>
+    <img src="../dist/brand/instasave-icon.svg" alt="">
+  </div>
+  <h1>Insta<span>Save</span></h1>
+  <p id="status" role="status">Inicializando…</p>
+  <div class="loader" aria-hidden="true"><b></b></div>
+  <div id="actions" hidden><button id="retry">Tentar novamente</button><button id="details">Ver detalhes</button></div>
+</main>
+<script src="splash.js"></script>
+</body></html>

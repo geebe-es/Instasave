@@ -19,7 +19,7 @@ from html.parser import HTMLParser
 from pathlib import Path
 from time import monotonic
 from urllib.error import HTTPError, URLError
-from urllib.parse import urlparse, urlunparse
+from urllib.parse import urlparse, urlunparse, unquote
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 
 ROOT = Path(__file__).parent.resolve()
@@ -172,10 +172,14 @@ def normalize_instagram_url(value: object) -> str:
     value = value.strip()
     if len(value) > MAX_URL_LENGTH:
         raise ResolveError("O link informado é muito longo.")
-    parsed = urlparse(value)
-    if parsed.scheme not in {"http", "https"} or parsed.username or parsed.password or parsed.port:
+    try:
+        parsed = urlparse(value)
+        invalid_authority = parsed.username or parsed.password or parsed.port is not None
+        hostname = (parsed.hostname or "").lower().rstrip(".")
+    except ValueError as error:
+        raise ResolveError("Insira um link válido do Instagram.") from error
+    if parsed.scheme not in {"http", "https"} or invalid_authority:
         raise ResolveError("Insira um link válido do Instagram.")
-    hostname = (parsed.hostname or "").lower().rstrip(".")
     if hostname not in {"instagram.com", "www.instagram.com"} or not ROUTE.fullmatch(parsed.path):
         raise ResolveError("Esse endereço não parece ser um link válido do Instagram.")
     return urlunparse(("https", "www.instagram.com", parsed.path.rstrip("/") + "/", "", "", ""))
@@ -196,10 +200,17 @@ class AppHandler(SimpleHTTPRequestHandler):
     server_version = "InstaSave/1.0"
 
     def translate_path(self, path: str) -> str:
-        clean = urlparse(path).path
-        if clean.startswith("/assets/"):
-            return str(ROOT / clean.lstrip("/"))
-        return str(STATIC / ("index.html" if clean in {"", "/"} else clean.lstrip("/")))
+        clean = unquote(urlparse(path).path).replace("\\", "/")
+        base = (ROOT / "assets" if clean.startswith("/assets/") else STATIC).resolve()
+        relative = clean.removeprefix("/assets/") if clean.startswith("/assets/") else clean.lstrip("/")
+        try:
+            target = (base / (relative or "index.html")).resolve()
+            target.relative_to(base)
+        except (ValueError, OSError):
+            # A child of a regular file cannot be served, even if a similarly
+            # named directory exists elsewhere in the project.
+            return str(Path(__file__) / "forbidden")
+        return str(target)
 
     def end_headers(self) -> None:
         self.send_header("X-Frame-Options", "DENY")

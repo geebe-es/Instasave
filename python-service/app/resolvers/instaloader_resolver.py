@@ -9,6 +9,7 @@ import instaloader
 
 from app.models.media import ServiceError
 from app.services.download_service import DownloadStore
+from app.services.image_service import convert_to_png
 from app.utils.filename import media_filename
 
 LOGGER = logging.getLogger(__name__)
@@ -21,7 +22,7 @@ class InstaloaderResolver:
         self.store = store
         self.loader = instaloader.Instaloader(
             download_pictures=False, download_videos=False, download_video_thumbnails=False,
-            save_metadata=False, compress_json=False, quiet=True,
+            save_metadata=False, compress_json=False, quiet=True, max_connection_attempts=1,
         )
         self.loader.context.request_timeout = timeout_seconds
 
@@ -71,24 +72,71 @@ class InstaloaderResolver:
         media_id, destination = self.store.reserve_path(extension)
         self._download_public_url(str(source_url), destination)
         width, height = self._dimensions(source)
+        if not is_video:
+            destination, width, height = convert_to_png(destination)
+            extension = "png"
         filename = media_filename(shortcode, position, extension)
         stored = self.store.register(media_id, destination, filename, width, height)
-        return {"id": stored.id, "type": "video" if is_video else "image", "width": width, "height": height, "format": extension, "filename": filename, "downloadEndpoint": f"/download/{stored.id}"}
+        item = {
+            "id": stored.id,
+            "type": "video" if is_video else "image",
+            "width": width,
+            "height": height,
+            "format": extension,
+            "filename": filename,
+            "downloadEndpoint": f"/download/{stored.id}",
+        }
+        if is_video:
+            # Metadata only: duration in seconds and an optional poster image
+            # (both come from the Instagram record itself, no additional format).
+            duration = getattr(source, "video_duration", None)
+            if isinstance(duration, (int, float)) and duration > 0:
+                item["duration"] = round(float(duration), 2)
+            item["thumbnailId"] = self._save_thumbnail(source, shortcode, position)
+        return item
 
-    def resolve(self, normalized_url: str, shortcode: str) -> dict:
+    def _save_thumbnail(self, source: object, shortcode: str, position: int) -> str | None:
+        """Optional poster image for video previews; failures never block the video."""
+        poster = getattr(source, "display_url", None)
+        if not poster:
+            return None
+        media_id, destination = self.store.reserve_path("jpg")
         try:
-            LOGGER.info("[Instaloader] shortcode=%s", shortcode)
+            self._download_public_url(str(poster), destination)
+            self.store.register(media_id, destination, media_filename(shortcode, position, "jpg"))
+            return media_id
+        except ServiceError:
+            destination.unlink(missing_ok=True)
+            return None
+
+    def resolve(self, normalized_url: str, shortcode: str, mode: str = "all") -> dict:
+        try:
+            LOGGER.info("[Instaloader] shortcode=%s mode=%s", shortcode, mode)
             post = instaloader.Post.from_shortcode(self.loader.context, shortcode)
             typename = post.typename
             if typename == "GraphImage":
+                if mode == "video":
+                    raise ServiceError("NO_VIDEO", "Esta publicação contém apenas imagens. Use o menu de imagens.", 404)
                 return {"type": "image", "media": [self._save_item(post, shortcode, 1, False)]}
             if typename == "GraphVideo":
                 return {"type": "video", "media": [self._save_item(post, shortcode, 1, True)]}
             if typename == "GraphSidecar":
-                media = [self._save_item(node, shortcode, index, bool(getattr(node, "is_video", False))) for index, node in enumerate(post.get_sidecar_nodes(), 1)]
+                nodes = list(post.get_sidecar_nodes())
+                total_nodes = len(nodes)
+                if mode == "video":
+                    selected = [(index, node) for index, node in enumerate(nodes, 1) if getattr(node, "is_video", False)]
+                else:
+                    selected = [(index, node) for index, node in enumerate(nodes, 1)]
+                media = [self._save_item(node, shortcode, index, bool(getattr(node, "is_video", False))) for index, node in selected]
                 if not media:
+                    if mode == "video":
+                        raise ServiceError("NO_VIDEO", "O carrossel não contém vídeos. Ele também está disponível no menu de imagens.", 404)
                     raise ServiceError("MEDIA_NOT_FOUND", "O carrossel não contém mídias disponíveis.", 404)
-                return {"type": "carousel", "media": media}
+                result = {"type": "carousel", "media": media}
+                if mode == "video":
+                    # Lets the UI report that the carousel also contains images.
+                    result["totalMedia"] = total_nodes
+                return result
             raise ServiceError("MEDIA_NOT_FOUND", "Este tipo de publicação não é compatível.", 422)
         except ServiceError:
             raise
@@ -99,3 +147,29 @@ class InstaloaderResolver:
             if "429" in message or "rate" in message:
                 raise ServiceError("RATE_LIMITED", "O Instagram limitou temporariamente novas consultas. Tente mais tarde.", 429) from error
             raise ServiceError("SOURCE_UNAVAILABLE", "Não foi possível obter a mídia pública no momento.", 503) from error
+
+    def resolve_story(self, username: str, media_id: str) -> dict:
+        """Anonymous-only story lookup. It never uses sessions, cookies or bypasses."""
+        label = f"{username}_{media_id[-6:]}" if media_id.isdigit() else username
+        try:
+            LOGGER.info("[Instaloader] story=%s media=%s", username, media_id)
+            story = instaloader.StoryItem.from_mediaid(self.loader.context, int(media_id))
+        except ServiceError:
+            raise
+        except instaloader.exceptions.ProfileNotExistsException as error:
+            raise ServiceError("STORY_UNAVAILABLE", "A conta deste story não está disponível.", 404) from error
+        except Exception as error:
+            message = str(error).lower()
+            if any(term in message for term in ("login", "challenge", "checkpoint", "private", "forbidden", "401", "403")):
+                # Anonymous story access is typically refused by Instagram.
+                raise ServiceError(
+                    "STORY_ACCESS_RESTRICTED",
+                    "O Instagram só disponibiliza stories para contas conectadas e autorizadas. O InstaSave não contorna controles de acesso.",
+                    403,
+                ) from error
+            if "429" in message or "rate" in message:
+                raise ServiceError("RATE_LIMITED", "O Instagram limitou temporariamente novas consultas. Tente mais tarde.", 429) from error
+            raise ServiceError("STORY_UNAVAILABLE", "Este story não está mais disponível ou expirou.", 404) from error
+        if not getattr(story, "is_video", False):
+            raise ServiceError("NO_VIDEO", "Este story não contém vídeo. Ele também está disponível no menu de imagens.", 404)
+        return {"type": "story", "media": [self._save_item(story, label, 1, True)]}

@@ -1,5 +1,19 @@
 # InstaSave
 
+## Aplicativo Windows
+
+A versão desktop preserva o frontend existente e inclui Electron, Node e Python. Consulte [desenvolvimento, build, instalação e testes desktop](docs/desktop.md).
+
+```powershell
+npm ci
+npm run setup
+npm run electron:dev
+# Gerar o instalador completo:
+npm run release:win
+```
+
+Saída: `release/InstaSave-Setup-1.0.0.exe`.
+
 Interface moderna e API segura para baixar mídia **publicamente disponível** de links do Instagram. O projeto não solicita credenciais e não implementa contornos de login, CAPTCHA, conteúdo privado ou outros controles de acesso.
 
 ## Executar localmente
@@ -45,6 +59,8 @@ npm run build
 O resultado fica em `dist/`.
 
 ## Arquitetura
+
+No fluxo atual Node/Python e no aplicativo Windows, as imagens são convertidas automaticamente para PNG antes do download, incluindo fotos de carrosséis. A conversão preserva a resolução e não recupera detalhes perdidos na fonte; vídeos mantêm seu formato original.
 
 - `frontend/`: aplicação React + TypeScript com Vite, landing page responsiva e estados de interface.
 - `backend/`: API Node.js + TypeScript, validação, limites e resolver modular.

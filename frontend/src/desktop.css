@@ -1,0 +1,70 @@
+.desktop-titlebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: 0 0 var(--titlebar-height);
+  height: var(--titlebar-height);
+  padding: 0 7px 0 13px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(9, 5, 18, 0.72);
+  backdrop-filter: blur(14px);
+  -webkit-app-region: drag;
+  user-select: none;
+}
+
+.desktop-titlebar__brand {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #cbbfdf;
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.desktop-titlebar__brand img {
+  width: 16px;
+  height: 16px;
+  opacity: 0.9;
+}
+
+.desktop-titlebar__dot {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--pink);
+  box-shadow: 0 0 7px rgba(236, 72, 153, 0.7);
+}
+
+.desktop-titlebar__controls {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  -webkit-app-region: no-drag;
+}
+
+.desktop-titlebar__controls button {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: #8f81a8;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color var(--duration-fast), color var(--duration-fast);
+}
+
+.desktop-titlebar__controls button:hover {
+  background: rgba(255, 255, 255, 0.07);
+  color: #fff;
+}
+
+.desktop-titlebar__controls button:last-child:hover {
+  background: rgba(220, 55, 88, 0.72);
+  color: #fff;
+}

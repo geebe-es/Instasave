@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field
 
 class ResolveRequest(BaseModel):
     url: str = Field(min_length=1, max_length=2048)
+    mode: str = Field(default="all", pattern="^(all|video)$")
 
 
 class MediaItem(BaseModel):
@@ -16,6 +17,8 @@ class MediaItem(BaseModel):
     format: str | None = None
     filename: str
     downloadEndpoint: str
+    duration: float | None = None
+    thumbnailId: str | None = None
 
 
 class ResolvedMedia(BaseModel):

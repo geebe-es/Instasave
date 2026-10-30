@@ -5,6 +5,7 @@ import os
 import threading
 import time
 import uuid
+import shutil
 from pathlib import Path
 
 from app.models.media import StoredFile, ServiceError
@@ -48,10 +49,22 @@ class DownloadStore:
         with self.lock:
             expired = [key for key, (_, expires) in self.records.items() if expires <= now]
             for key in expired:
-                stored, _ = self.records.pop(key)
-                stored.path.unlink(missing_ok=True)
+                stored, _ = self.records[key]
+                try:
+                    stored.path.unlink(missing_ok=True)
+                except OSError:
+                    continue
+                del self.records[key]
                 removed += 1
+            tracked = {stored.path for stored, _ in self.records.values()}
         for path in self.directory.iterdir():
-            if path.is_file() and now - path.stat().st_mtime > self.ttl_seconds:
-                path.unlink(missing_ok=True)
+            try:
+                if path in tracked or now - path.stat().st_mtime <= self.ttl_seconds:
+                    continue
+                if path.is_file():
+                    path.unlink(missing_ok=True)
+                elif path.is_dir() and path.name.startswith("abandoned-"):
+                    shutil.rmtree(path)
+            except OSError:
+                continue
         return removed

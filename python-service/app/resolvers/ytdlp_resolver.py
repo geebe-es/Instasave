@@ -26,7 +26,17 @@ class YtDlpResolver:
         return max(combined, key=lambda item: ((item.get("width") or 0) * (item.get("height") or 0), item.get("filesize") or item.get("filesize_approx") or 0), default=None)
 
     def resolve(self, url: str, shortcode: str) -> dict:
-        probe_options = {"quiet": True, "no_warnings": True, "noplaylist": True, "socket_timeout": self.timeout_seconds}
+        probe_options = {"quiet": True, "no_warnings": True, "noplaylist": True, "socket_timeout": self.timeout_seconds, "retries": 0, "fragment_retries": 0, "extractor_retries": 0}
+        media_id = None
+        succeeded = False
+        limit_error = None
+
+        def check_size(progress: dict) -> None:
+            nonlocal limit_error
+            if max(progress.get("downloaded_bytes") or 0, progress.get("total_bytes") or 0) > self.store.max_bytes:
+                limit_error = ServiceError("FILE_TOO_LARGE", "O arquivo excede o tamanho máximo permitido.", 413)
+                raise limit_error
+
         try:
             LOGGER.info("[yt-dlp] shortcode=%s", shortcode)
             with yt_dlp.YoutubeDL(probe_options) as ydl:
@@ -34,23 +44,38 @@ class YtDlpResolver:
             selected = self._best_combined_format(info)
             if not selected:
                 raise ServiceError("MEDIA_NOT_FOUND", "Não há um formato de vídeo completo compatível disponível.", 404)
+            check_size({"total_bytes": selected.get("filesize")})
             extension = selected.get("ext") or "mp4"
+            if extension not in {"mp4", "mov", "webm"}:
+                raise ServiceError("MEDIA_NOT_FOUND", "O formato do vídeo não é compatível.", 422)
             media_id, destination = self.store.reserve_path(extension)
-            options = {**probe_options, "format": selected["format_id"], "outtmpl": str(destination.with_suffix(".%(ext)s")), "overwrites": False}
+            options = {**probe_options, "format": selected["format_id"], "outtmpl": str(destination.with_suffix(".%(ext)s")), "overwrites": False,
+                       "max_filesize": self.store.max_bytes, "progress_hooks": [check_size],
+                       "buffersize": 64 * 1024, "noresizebuffer": True, "http_chunk_size": 64 * 1024}
             with yt_dlp.YoutubeDL(options) as ydl:
                 ydl.extract_info(url, download=True)
             files = list(destination.parent.glob(f"{media_id}.*"))
-            if len(files) != 1:
+            if len(files) != 1 or files[0].suffix.lstrip(".") not in {"mp4", "mov", "webm"}:
                 raise ServiceError("DOWNLOAD_FAILED", "Não foi possível preparar o vídeo completo.", 502)
             filename = media_filename(shortcode, 1, files[0].suffix.lstrip("."))
             stored = self.store.register(media_id, files[0], filename, selected.get("width"), selected.get("height"))
+            succeeded = True
             return {"type": "video", "media": [{"id": stored.id, "type": "video", "width": stored.width, "height": stored.height, "format": files[0].suffix.lstrip("."), "filename": filename, "downloadEndpoint": f"/download/{stored.id}"}]}
         except ServiceError:
             raise
         except Exception as error:
+            if limit_error is not None:
+                raise limit_error from error
             message = str(error).lower()
             if any(term in message for term in ("login", "challenge", "checkpoint", "private", "forbidden", "403", "metadata failed")):
                 raise ServiceError("SOURCE_ACCESS_RESTRICTED", "O Instagram não disponibilizou este vídeo publicamente para o servidor.", 403) from error
             if "429" in message or "rate" in message:
                 raise ServiceError("RATE_LIMITED", "O Instagram limitou temporariamente novas consultas. Tente mais tarde.", 429) from error
             raise ServiceError("SOURCE_UNAVAILABLE", "Não foi possível obter o vídeo público no momento.", 503) from error
+        finally:
+            if media_id and not succeeded:
+                for path in self.store.directory.glob(f"{media_id}.*"):
+                    try:
+                        path.unlink(missing_ok=True)
+                    except OSError:
+                        pass  # The worker/session cleanup retries locked files.

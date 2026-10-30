@@ -1,0 +1,79 @@
+@font-face{font-family:'DM Sans';src:url('../dist/fonts/dm-sans-latin-wght-normal.woff2')}
+@font-face{font-family:Manrope;src:url('../dist/fonts/manrope-latin-wght-normal.woff2');font-weight:200 800}
+
+:root{--ease:cubic-bezier(.22,1,.36,1)}
+
+*{box-sizing:border-box}
+body{margin:0;overflow:hidden;color:#f8f7fc;background:#0d0819;font:14px 'DM Sans',Arial;-webkit-app-region:drag;user-select:none}
+main{position:relative;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:18px;
+  background:radial-gradient(circle at 0 0,rgba(125,61,250,.28),transparent 62%),
+             radial-gradient(circle at 100% 100%,rgba(255,61,129,.16),transparent 62%)}
+
+/* ---------- fundamentos decorativos (mesma linguagem do app) ---------- */
+.scene{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.aurora{position:absolute;border-radius:50%;filter:blur(64px);opacity:.55;animation:auroraDrift 16s ease-in-out infinite alternate}
+.aurora--one{top:-110px;left:-90px;width:290px;height:290px;background:rgba(125,61,250,.4)}
+.aurora--two{right:-120px;bottom:-140px;width:320px;height:320px;background:rgba(236,61,129,.3);animation-delay:-8s}
+@keyframes auroraDrift{from{transform:translate3d(0,0,0) scale(1)}to{transform:translate3d(30px,26px,0) scale(1.15)}}
+
+.orbit{position:absolute;top:50%;left:50%;border:1px dashed rgba(255,255,255,.09);border-radius:50%}
+.orbit--one{width:332px;height:332px;margin:-166px 0 0 -166px;animation:orbitSpin 18s linear infinite}
+.orbit--two{width:252px;height:252px;margin:-126px 0 0 -126px;border-color:rgba(255,255,255,.05);animation:orbitSpin 12s linear infinite reverse}
+.orbit i{position:absolute;top:-4px;left:50%;width:7px;height:7px;border-radius:50%;background:linear-gradient(120deg,#ff9e19,#ff397e);box-shadow:0 0 10px rgba(255,57,126,.7)}
+@keyframes orbitSpin{to{transform:rotate(360deg)}}
+
+.card-float{position:absolute;display:grid;place-items:center;width:46px;height:46px;border:1px solid rgba(255,255,255,.14);border-radius:14px;
+  background:linear-gradient(150deg,rgba(255,255,255,.08),rgba(255,255,255,.02));box-shadow:0 16px 30px rgba(3,1,13,.4);color:#f2e8ff;
+  --r:0deg;animation:floatCard 7s ease-in-out infinite}
+.card-float svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.card-float--one{top:64px;left:76px;--r:-7deg;animation-delay:-1.4s}
+.card-float--two{top:148px;right:64px;--r:8deg;color:#ffd1e5;animation-delay:-3.2s}
+.card-float--three{bottom:72px;left:112px;--r:-5deg;color:#ffce8a;animation-delay:-5s}
+@keyframes floatCard{0%,100%{transform:translateY(0) rotate(var(--r))}50%{transform:translateY(-9px) rotate(var(--r))}}
+
+.spark{position:absolute;width:4px;height:4px;border-radius:50%;background:#fff;box-shadow:0 0 12px rgba(255,255,255,.8);animation:twinkle 2.4s ease-in-out infinite}
+.spark--one{top:92px;right:142px}
+.spark--two{bottom:122px;right:196px;animation-delay:-.9s}
+.spark--three{top:184px;left:158px;animation-delay:-1.6s}
+@keyframes twinkle{0%,100%{opacity:.1;transform:scale(.7)}50%{opacity:.95;transform:scale(1.25)}}
+
+/* ---------- marca ---------- */
+.brand{position:relative;z-index:2;display:grid;place-items:center;width:126px;height:126px;margin-bottom:14px;animation:riseIn 620ms var(--ease) both}
+.brand img{position:relative;z-index:2;width:74px;height:74px;filter:drop-shadow(0 10px 26px rgba(147,51,234,.45))}
+.brand__halo{position:absolute;inset:-26px;border-radius:50%;
+  background:radial-gradient(circle,rgba(236,61,129,.32),rgba(125,61,250,.2) 45%,transparent 70%);
+  animation:haloPulse 2.8s var(--ease) infinite}
+.brand__ring{position:absolute;inset:0;border-radius:50%;padding:3px;
+  background:conic-gradient(from 0deg,rgba(255,158,25,0),rgba(255,57,126,.9) 22%,rgba(169,100,255,.9) 48%,rgba(255,57,126,.15) 74%,rgba(255,158,25,0));
+  mask:radial-gradient(farthest-side,transparent calc(100% - 3px),#000 calc(100% - 3px));
+  animation:orbitSpin 9s linear infinite}
+@keyframes haloPulse{0%,100%{opacity:.7;transform:scale(1)}50%{opacity:1;transform:scale(1.09)}}
+@keyframes orbitSpin{to{transform:rotate(360deg)}}
+
+/* ---------- texto e progresso ---------- */
+h1{position:relative;z-index:2;margin:0 0 8px;font:800 30px Manrope,Arial;letter-spacing:-1.2px;animation:riseIn 600ms var(--ease) .12s both}
+h1 span{background:linear-gradient(100deg,#ff9e19,#ff397e,#a964ff);background-clip:text;color:transparent}
+#status{position:relative;z-index:2;margin:0;max-width:330px;min-height:20px;color:#aaa5b9;font-size:12.5px;text-align:center;animation:riseIn 600ms var(--ease) .2s both}
+.loader{position:relative;z-index:2;width:212px;height:4px;margin-top:14px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden;animation:riseIn 600ms var(--ease) .28s both}
+.loader b{position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,158,25,.35) 38%,rgba(255,57,126,.5) 55%,rgba(169,100,255,.4) 70%,transparent);background-repeat:no-repeat;animation:shimmer 1.6s cubic-bezier(.45,0,.4,1) infinite}
+@keyframes shimmer{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
+
+/* ---------- ação e erro ---------- */
+button{-webkit-app-region:no-drag;cursor:pointer;color:#fff;border:1px solid #ffffff24;border-radius:11px;background:#ffffff0d;padding:10px 16px;font:inherit;transition:background-color .18s,transform .18s,box-shadow .18s}
+button:active{transform:scale(.97)}
+#close{position:absolute;z-index:3;right:12px;top:12px;width:30px;height:30px;padding:0;border:0;font-size:15px;line-height:1}
+#close:hover{background:#ffffff14}
+#actions{position:relative;z-index:2;display:flex;gap:10px;margin-top:16px}
+#actions[hidden]{display:none}
+body.failed #actions{animation:riseIn 480ms var(--ease) both}
+#retry{background:linear-gradient(105deg,#ff9e19,#ff397e 55%,#9a48f7);border:0;box-shadow:0 10px 24px rgba(236,61,129,.3)}
+#retry:hover,#details:hover{filter:brightness(1.12)}
+body.failed .loader{display:none}
+body.failed #status{color:#ffc9d8}
+
+@keyframes riseIn{from{opacity:0;transform:translateY(14px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
+
+@media (prefers-reduced-motion: reduce){
+  .aurora,.orbit,.card-float,.spark,.brand__halo,.brand__ring,.loader b{animation-duration:0s;animation-iteration-count:1}
+  .loader b{opacity:.55}
+}

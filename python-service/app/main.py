@@ -3,30 +3,25 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
+import secrets
 from contextlib import asynccontextmanager, suppress
 from pathlib import Path
-from time import monotonic
 
 from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse, JSONResponse
 
 from app.models.media import ResolveRequest, ServiceError
-from app.resolvers.instagram import InstagramResolver
-from app.resolvers.instaloader_resolver import InstaloaderResolver
-from app.resolvers.ytdlp_resolver import YtDlpResolver
+from app.services.resolve_service import ResolveService
 from app.services.cleanup_service import run_cleanup
 from app.services.download_service import DownloadStore
 
 ROOT = Path(__file__).resolve().parents[1]
-DOWNLOADS = ROOT / "downloads"
+DOWNLOADS = Path(os.getenv("INSTASAVE_TEMP_DIR", str(ROOT / "downloads")))
 TTL_SECONDS = int(os.getenv("FILE_TTL_MINUTES", "30")) * 60
 MAX_BYTES = int(os.getenv("MAX_DOWNLOAD_MB", "500")) * 1024 * 1024
 RESOLVE_TIMEOUT = int(os.getenv("RESOLVE_TIMEOUT", "30"))
-RATE_LIMIT_MAX = int(os.getenv("RATE_LIMIT_MAX", "30"))
-RATE_WINDOW = int(os.getenv("RATE_LIMIT_WINDOW_SECONDS", "900"))
 STORE = DownloadStore(DOWNLOADS, TTL_SECONDS, MAX_BYTES)
-RESOLVER = InstagramResolver(InstaloaderResolver(STORE, RESOLVE_TIMEOUT), YtDlpResolver(STORE, RESOLVE_TIMEOUT))
-RATE_LIMIT: dict[str, list[float]] = {}
+RESOLVER = ResolveService(STORE, RESOLVE_TIMEOUT)
 
 
 @asynccontextmanager
@@ -42,16 +37,24 @@ app = FastAPI(title="InstaSave private resolver", docs_url=None, redoc_url=None,
 
 
 @app.middleware("http")
-async def rate_limit(request: Request, call_next):
-    if request.url.path not in {"/resolve"}:
-        return await call_next(request)
-    client = request.client.host if request.client else "unknown"
-    now = monotonic()
-    attempts = [timestamp for timestamp in RATE_LIMIT.get(client, []) if now - timestamp < RATE_WINDOW]
-    if len(attempts) >= RATE_LIMIT_MAX:
-        return JSONResponse(status_code=429, content={"success": False, "error": {"code": "RATE_LIMITED", "message": "Limite temporário atingido. Tente novamente mais tarde."}})
-    RATE_LIMIT[client] = [*attempts, now]
+async def desktop_auth(request: Request, call_next):
+    token = os.getenv("INSTASAVE_SERVICE_TOKEN")
+    if token and not secrets.compare_digest(request.headers.get("x-instasave-token", ""), token):
+        return JSONResponse(status_code=403, content={"error": "Forbidden"})
     return await call_next(request)
+
+
+@app.get("/health")
+async def health():
+    return {"status": "ok"}
+
+
+@app.post("/shutdown")
+async def shutdown():
+    if not os.getenv("INSTASAVE_SERVICE_TOKEN") or not hasattr(app.state, "desktop_server"):
+        return JSONResponse(status_code=404, content={"error": "Not found"})
+    app.state.desktop_server.should_exit = True
+    return {"status": "ok"}
 
 
 @app.exception_handler(ServiceError)
@@ -60,14 +63,19 @@ async def service_error_handler(_: Request, error: ServiceError):
 
 
 @app.post("/resolve")
-async def resolve(payload: ResolveRequest):
-    # Libraries are synchronous; run them off the event loop and cap the whole
-    # resolution operation. No retries, cookies, or authentication are used.
+async def resolve(payload: ResolveRequest, request: Request):
+    operation = asyncio.create_task(RESOLVER.resolve(payload.url, payload.mode))
     try:
-        result = await asyncio.wait_for(asyncio.to_thread(RESOLVER.resolve, payload.url), timeout=RESOLVE_TIMEOUT)
-    except TimeoutError as error:
-        raise ServiceError("RESOLVE_TIMEOUT", "A análise da publicação demorou demais. Tente novamente.", 504) from error
-    return {"success": True, **result}
+        while not operation.done():
+            await asyncio.wait({operation}, timeout=0.1)
+            if await request.is_disconnected():
+                raise ServiceError("REQUEST_CANCELLED", "A solicitação foi cancelada.", 499)
+        return {"success": True, **await operation}
+    finally:
+        if not operation.done():
+            operation.cancel()
+        with suppress(asyncio.CancelledError):
+            await operation
 
 
 @app.get("/download/{media_id}")

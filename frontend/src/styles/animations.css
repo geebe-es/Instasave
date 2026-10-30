@@ -1,0 +1,198 @@
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes riseIn {
+  from { opacity: 0; transform: translate3d(0, 14px, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+@keyframes headerIn {
+  from { opacity: 0; transform: translate3d(0, -10px, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+@keyframes pageIn {
+  from { opacity: 0; transform: translate3d(0, 8px, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+@keyframes visualIn {
+  from { opacity: 0; transform: scale(0.92) translate3d(0, 12px, 0); }
+  to { opacity: 1; transform: scale(1) translate3d(0, 0, 0); }
+}
+
+@keyframes floatSoft {
+  0%, 100% { transform: translate3d(0, 0, 0) rotate(var(--rot, 0deg)); }
+  50% { transform: translate3d(0, -8px, 0) rotate(var(--rot, 0deg)); }
+}
+
+@keyframes floatCard {
+  0%, 100% { transform: translate3d(0, 0, 0) rotate(var(--rot, 0deg)) rotateY(var(--ry, 0deg)); }
+  50% { transform: translate3d(0, -7px, 0) rotate(var(--rot, 0deg)) rotateY(var(--ry, 0deg)); }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { opacity: 0.55; transform: scale(0.98); }
+  50% { opacity: 1; transform: scale(1.02); }
+}
+
+@keyframes ringPulse {
+  0% { opacity: 0.5; transform: scale(0.82); }
+  70%, 100% { opacity: 0; transform: scale(1.18); }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes shimmer {
+  0% { background-position: 160% 0; }
+  100% { background-position: -60% 0; }
+}
+
+@keyframes toastIn {
+  from { opacity: 0; transform: translate3d(18px, -6px, 0) scale(0.97); }
+  to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+}
+
+@keyframes toastOut {
+  from { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+  to { opacity: 0; transform: translate3d(16px, -4px, 0) scale(0.97); }
+}
+
+@keyframes toastTimer {
+  from { transform: scaleX(1); }
+  to { transform: scaleX(0); }
+}
+
+@keyframes indeterminate {
+  0% { transform: translate3d(-110%, 0, 0) scaleX(0.6); }
+  50% { transform: translate3d(55%, 0, 0) scaleX(1.1); }
+  100% { transform: translate3d(190%, 0, 0) scaleX(0.6); }
+}
+
+@keyframes successGlow {
+  0% { box-shadow: 0 0 0 0 rgba(88, 230, 168, 0); }
+  35% { box-shadow: 0 0 0 3px rgba(88, 230, 168, 0.12), 0 0 28px rgba(88, 230, 168, 0.2); }
+  100% { box-shadow: 0 0 0 0 rgba(88, 230, 168, 0); }
+}
+
+@keyframes iconBounce {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(0, -2px, 0); }
+}
+
+@keyframes softBlink {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 0.85; }
+}
+
+@keyframes gearTurn {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(32deg); }
+}
+
+@keyframes refreshTurn {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(180deg); }
+}
+
+.page-stage > * {
+  animation: pageIn var(--duration-base) var(--ease-out) both;
+}
+
+.app-shell.is-booting .desktop-titlebar {
+  animation: fadeIn 420ms var(--ease-out) both;
+}
+
+.app-shell.is-booting .app-header {
+  animation: headerIn 540ms 110ms var(--ease-out) both;
+}
+
+.app-shell.is-booting .hero-copy > * {
+  animation: riseIn 560ms var(--ease-out) both;
+}
+
+.app-shell.is-booting .hero-copy > :nth-child(1) { animation-delay: 160ms; }
+.app-shell.is-booting .hero-copy > :nth-child(2) { animation-delay: 220ms; }
+.app-shell.is-booting .hero-copy > :nth-child(3) { animation-delay: 290ms; }
+.app-shell.is-booting .hero-copy > :nth-child(4) { animation-delay: 350ms; }
+
+.app-shell.is-booting .hero-visual {
+  animation: visualIn 760ms 190ms var(--ease-out) both;
+}
+
+.app-shell.is-booting .composer {
+  animation: riseIn 580ms 340ms var(--ease-out) both;
+}
+
+.app-shell.is-booting .folder-bar {
+  animation: fadeIn 480ms 430ms var(--ease-out) both;
+}
+
+.app-shell.is-booting .media-panel {
+  animation: riseIn 580ms 490ms var(--ease-out) both;
+}
+
+.app-shell.is-booting .app-footer {
+  animation: fadeIn 480ms 620ms var(--ease-out) both;
+}
+
+.loading-spinner {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+}
+
+.loading-spinner > span {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.22);
+  border-top-color: var(--pink-bright);
+  border-radius: 50%;
+  animation: spin 760ms linear infinite;
+}
+
+.loading-spinner--sm > span {
+  width: 14px;
+  height: 14px;
+  border-width: 1.8px;
+}
+
+.loading-spinner--lg > span {
+  width: 22px;
+  height: 22px;
+  border-width: 2.4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .background-scene__particle,
+  .background-scene__wave-line {
+    display: none !important;
+  }
+}
+
+:root[data-motion='reduced'] *,
+:root[data-motion='reduced'] *::before,
+:root[data-motion='reduced'] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
+:root[data-motion='reduced'] .background-scene__particle,
+:root[data-motion='reduced'] .background-scene__wave-line {
+  display: none !important;
+}

@@ -4,3 +4,4 @@ instaloader
 yt-dlp
 pydantic
 python-multipart
+Pillow==12.3.0

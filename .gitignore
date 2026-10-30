@@ -12,3 +12,5 @@ release/
 downloads/
 *.tsbuildinfo
 test-results/
+desktop-dist/
+.backups/
