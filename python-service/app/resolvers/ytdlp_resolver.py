@@ -33,7 +33,7 @@ class YtDlpResolver:
 
         def check_size(progress: dict) -> None:
             nonlocal limit_error
-            if max(progress.get("downloaded_bytes") or 0, progress.get("total_bytes") or 0) > self.store.max_bytes:
+            if self.store.max_bytes > 0 and max(progress.get("downloaded_bytes") or 0, progress.get("total_bytes") or 0) > self.store.max_bytes:
                 limit_error = ServiceError("FILE_TOO_LARGE", "O arquivo excede o tamanho máximo permitido.", 413)
                 raise limit_error
 
@@ -50,8 +50,11 @@ class YtDlpResolver:
                 raise ServiceError("MEDIA_NOT_FOUND", "O formato do vídeo não é compatível.", 422)
             media_id, destination = self.store.reserve_path(extension)
             options = {**probe_options, "format": selected["format_id"], "outtmpl": str(destination.with_suffix(".%(ext)s")), "overwrites": False,
-                       "max_filesize": self.store.max_bytes, "progress_hooks": [check_size],
+                       "progress_hooks": [check_size],
                        "buffersize": 64 * 1024, "noresizebuffer": True, "http_chunk_size": 64 * 1024}
+            # max_filesize is only set when a limit is configured (0 = unlimited).
+            if self.store.max_bytes > 0:
+                options["max_filesize"] = self.store.max_bytes
             with yt_dlp.YoutubeDL(options) as ydl:
                 ydl.extract_info(url, download=True)
             files = list(destination.parent.glob(f"{media_id}.*"))

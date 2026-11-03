@@ -40,7 +40,7 @@ def run(fixtures: str):
                 Image.new('RGB', (31, 47), 'red').save(photo)
                 with Image.open(photo) as original:
                     expected_pixels = original.tobytes()
-                converted, width, height = convert_to_png(photo, store.max_bytes)
+                converted, width, height = convert_to_png(photo)
                 assert (width, height) == (31, 47)
                 with Image.open(converted) as png:
                     assert png.format == 'PNG' and png.tobytes() == expected_pixels

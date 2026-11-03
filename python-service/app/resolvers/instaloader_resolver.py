@@ -42,7 +42,7 @@ class InstaloaderResolver:
         """Stream bytes returned by Instaloader's public request context unchanged."""
         response = self.loader.context.get_raw(url)
         expected = response.headers.get("Content-Length")
-        if expected and int(expected) > self.store.max_bytes:
+        if expected and self.store.max_bytes > 0 and int(expected) > self.store.max_bytes:
             response.close()
             raise ServiceError("FILE_TOO_LARGE", "O arquivo excede o tamanho máximo permitido.", 413)
         written = 0
@@ -52,7 +52,7 @@ class InstaloaderResolver:
                     if not chunk:
                         continue
                     written += len(chunk)
-                    if written > self.store.max_bytes:
+                    if self.store.max_bytes > 0 and written > self.store.max_bytes:
                         raise ServiceError("FILE_TOO_LARGE", "O arquivo excede o tamanho máximo permitido.", 413)
                     output.write(chunk)
         except Exception:

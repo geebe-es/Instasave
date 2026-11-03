@@ -16,13 +16,13 @@ from app.services.resolve_service import ResolveService
 from app.utils.url_validator import validate_instagram_url
 
 
-def slow_worker(url, directory, ttl, max_bytes, timeout):
+def slow_worker(url, directory, ttl, max_bytes, timeout, mode='all'):
     (Path(directory) / 'started').write_text('yes')
     time.sleep(30)
     (Path(directory) / 'late-write').write_text('unexpected')
 
 
-def successful_worker(url, directory, ttl, max_bytes, timeout):
+def successful_worker(url, directory, ttl, max_bytes, timeout, mode='all'):
     media_id = '00000000-0000-0000-0000-000000000001'
     (Path(directory) / f'{media_id}.jpg').write_bytes(b'complete media')
     (Path(directory) / 'result.json').write_text(json.dumps({'result': {
@@ -38,13 +38,13 @@ class ValidationTests(unittest.TestCase):
             self.assertEqual(raised.exception.code, 'LINK_INVALID')
 
     def test_reels_alias_and_case_use_video_fallback(self):
-        primary, fallback = MagicMock(), MagicMock()
-        primary.resolve.side_effect = ServiceError('MEDIA_NOT_FOUND', 'missing')
-        fallback.resolve.return_value = {'type': 'video', 'media': []}
-        resolver = InstagramResolver(primary, fallback)
         for route in ['reel', 'reels', 'REELS', 'Reel']:
+            primary, fallback = MagicMock(), MagicMock()
+            primary.resolve.side_effect = ServiceError('MEDIA_NOT_FOUND', 'missing')
+            fallback.resolve.return_value = {'type': 'video', 'media': []}
+            resolver = InstagramResolver(primary, fallback)
             resolver.resolve(f'https://instagram.com/{route}/Abcde12/')
-            fallback.resolve.assert_called_with('https://www.instagram.com/reel/Abcde12/', 'Abcde12')
+            fallback.resolve.assert_called_with(f'https://www.instagram.com/{route.lower()}/Abcde12/', 'Abcde12')
 
 
 class CleanupTests(unittest.TestCase):
@@ -119,7 +119,7 @@ class ResolveEndpointTests(unittest.IsolatedAsyncioTestCase):
         from app.main import resolve
         from app.models.media import ResolveRequest
         cancelled = asyncio.Event()
-        async def pending(_url):
+        async def pending(_url, _mode='all'):
             try:
                 await asyncio.sleep(60)
             finally:

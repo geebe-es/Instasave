@@ -6,7 +6,7 @@
 InstaSave.exe (Electron, processo principal)
 ├─ preload isolado → React / TypeScript / Vite existentes
 ├─ utilityProcess → API Express existente (Node incluído no Electron)
-└─ downloader-service.exe → FastAPI → Instaloader / yt-dlp
+└─ downloader-service.exe → FastAPI → Instaloader / yt-dlp / página pública (fallback anônimo)
 ```
 
 O frontend, CSS, logo e resolvedores existentes foram preservados. `server.py` e `static/`, implementações anteriores, permanecem no repositório e não são usados no desktop. A API Express é compilada em um único arquivo com esbuild. O frontend de produção é servido pela API local e recebe CSP do Helmet; o renderer não executa Node.
@@ -45,10 +45,17 @@ npm run dist:win        # build completo + instalador NSIS
 npm run release:win     # alias do build completo
 ```
 
+Versionamento: `package.json` raiz define a versão do produto e do instalador
+(`instalador InstaSave-Setup-x.y.z.exe`). Para publicar uma versão nova em
+GitHub Releases: bump no `package.json` (tópico "Versionamento"), rode
+`npm run release:win`, anexe o `Setup.exe` à release e a nota de
+`CHANGELOG.md` correspondente. A reinstalação em cima da versão instalada
+atualiza o aplicativo (appId e chaves NSIS estáveis).
+
 Resultado:
 
 ```text
-release/InstaSave-Setup-1.0.0.exe
+release/InstaSave-Setup-<versão>.exe
 release/win-unpacked/InstaSave.exe
 ```
 

@@ -31,7 +31,10 @@ def capture(window, destination):
 if __name__ == "__main__":
     mode = sys.argv[1]
     if mode in {"start", "install"}:
-        application = Application(backend="win32").start(f'"{ROOT / "release/InstaSave-Setup-1.0.0.exe"}"')
+        installers = sorted((ROOT / "release").glob("InstaSave-Setup-*.exe"))
+        if not installers:
+            sys.exit("Nenhum instalador em release/InstaSave-Setup-*.exe")
+        application = Application(backend="win32").start(f'"{installers[-1]}"')
         window = application.top_window()
         window.wait("visible", timeout=30)
         (ROOT / "test-results/installer-pid.txt").write_text(str(application.process))

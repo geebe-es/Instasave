@@ -18,7 +18,8 @@ from app.services.download_service import DownloadStore
 ROOT = Path(__file__).resolve().parents[1]
 DOWNLOADS = Path(os.getenv("INSTASAVE_TEMP_DIR", str(ROOT / "downloads")))
 TTL_SECONDS = int(os.getenv("FILE_TTL_MINUTES", "30")) * 60
-MAX_BYTES = int(os.getenv("MAX_DOWNLOAD_MB", "500")) * 1024 * 1024
+# MAX_DOWNLOAD_MB <= 0 keeps downloads unlimited.
+MAX_BYTES = max(0, int(os.getenv("MAX_DOWNLOAD_MB", "0"))) * 1024 * 1024
 RESOLVE_TIMEOUT = int(os.getenv("RESOLVE_TIMEOUT", "30"))
 STORE = DownloadStore(DOWNLOADS, TTL_SECONDS, MAX_BYTES)
 RESOLVER = ResolveService(STORE, RESOLVE_TIMEOUT)

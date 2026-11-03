@@ -27,7 +27,7 @@ class DownloadStore:
     def register(self, media_id: str, path: Path, filename: str, width: int | None = None, height: int | None = None) -> StoredFile:
         if not path.is_file() or path.stat().st_size <= 0:
             raise ServiceError("DOWNLOAD_FAILED", "A fonte não entregou um arquivo completo.", 502)
-        if path.stat().st_size > self.max_bytes:
+        if self.max_bytes > 0 and path.stat().st_size > self.max_bytes:
             path.unlink(missing_ok=True)
             raise ServiceError("FILE_TOO_LARGE", "O arquivo excede o tamanho máximo permitido.", 413)
         media_type = mimetypes.guess_type(filename)[0] or "application/octet-stream"

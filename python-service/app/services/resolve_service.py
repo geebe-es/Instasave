@@ -25,10 +25,15 @@ def resolve_worker(url: str, directory: str, ttl: int, max_bytes: int, timeout: 
         threading.Thread(target=watch_parent, daemon=True).start()
     from app.resolvers.instagram import InstagramResolver
     from app.resolvers.instaloader_resolver import InstaloaderResolver
+    from app.resolvers.webpage_resolver import WebpageResolver
     from app.resolvers.ytdlp_resolver import YtDlpResolver
 
     store = DownloadStore(Path(directory), ttl, max_bytes)
-    resolver = InstagramResolver(InstaloaderResolver(store, timeout), YtDlpResolver(store, timeout))
+    resolver = InstagramResolver(
+        InstaloaderResolver(store, timeout),
+        YtDlpResolver(store, timeout),
+        WebpageResolver(store, timeout),
+    )
     try:
         result = {"result": resolver.resolve(url, mode)}
     except ServiceError as error:

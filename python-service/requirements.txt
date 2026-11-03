@@ -2,6 +2,7 @@ fastapi
 uvicorn[standard]
 instaloader
 yt-dlp
+requests==2.34.2
 pydantic
 python-multipart
 Pillow==12.3.0
