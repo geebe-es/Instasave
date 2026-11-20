@@ -73,8 +73,11 @@ npm run test:ui
 
 ## Ambiente de desenvolvimento
 
-- Node.js 24+ e Python 3.11+ (validado com Node 24.21.0 e Python 3.14.7).
-- Se a venv for movida de máquina/usuário, recrie:
+- Node.js 24+ e Python 3.14 (validado com Node 26.13.1 e Python 3.14.10).
+  O lock atual não possui wheels para Python 3.15, que tentaria compilar
+  httptools/pydantic-core/PyYAML e exigiria Visual C++ Build Tools.
+- O `npm run setup` prefere `py -3.14` ao criar a venv; se a venv for movida
+  de máquina/usuário, recrie:
 
 ```powershell
 Remove-Item -Recurse -Force python-service\.venv

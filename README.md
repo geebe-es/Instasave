@@ -18,7 +18,7 @@ Interface moderna e API segura para baixar mídia **publicamente disponível** d
 
 ## Executar localmente
 
-Requisitos: Python 3.11+ e Node.js 20+.
+Requisitos: Python 3.14 (o lock não tem wheels para 3.15) e Node.js 24+.
 
 Em um primeiro terminal, execute o resolvedor Python privado (ele ocupa a porta 8000):
 

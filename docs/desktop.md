@@ -21,7 +21,7 @@ As imagens, incluindo itens de carrosséis, são convertidas automaticamente par
 
 ## Desenvolvimento
 
-Ferramentas validadas nesta máquina: Windows 11 x64, Node 24.21.0 e Python 3.14.7. Somente o desenvolvedor precisa delas.
+Ferramentas validadas nesta máquina: Windows 11 x64, Node.js 26.13.1 e Python 3.14.10. Use Python 3.14: o lock atual não tem wheels para 3.15. Somente o desenvolvedor precisa delas.
 
 Preparação de um checkout novo:
 
