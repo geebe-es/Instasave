@@ -95,9 +95,9 @@ test('desktop: startup, isolation, offline UI, layout, IPC validation and shutdo
       recorder.start(); setTimeout(() => recorder.stop(), 400);
       const bytes = await finished; stream.getTracks().forEach(track => track.stop()); oscillator.stop(); await audio.close(); return bytes;
     });
-    await fs.mkdir(path.join(root, 'test-results/fixtures'), { recursive: true });
-    await fs.writeFile(path.join(root, 'test-results/fixtures/image.png'), image);
-    await fs.writeFile(path.join(root, 'test-results/fixtures/video.webm'), Buffer.from(video));
+    await fs.mkdir(path.join(root, 'tests/fixtures'), { recursive: true });
+    await fs.writeFile(path.join(root, 'tests/fixtures/image.png'), image);
+    await fs.writeFile(path.join(root, 'tests/fixtures/video.webm'), Buffer.from(video));
     pids = await application.evaluate(({ app }) => app.getAppMetrics().filter(metric => metric.type === 'Utility').map(metric => metric.pid));
   } finally {
     await application.close();

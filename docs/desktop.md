@@ -9,7 +9,7 @@ InstaSave.exe (Electron, processo principal)
 └─ downloader-service.exe → FastAPI → Instaloader / yt-dlp / página pública (fallback anônimo)
 ```
 
-O frontend, CSS, logo e resolvedores existentes foram preservados. `server.py` e `static/`, implementações anteriores, permanecem no repositório e não são usados no desktop. A API Express é compilada em um único arquivo com esbuild. O frontend de produção é servido pela API local e recebe CSP do Helmet; o renderer não executa Node.
+O frontend, CSS, logo e resolvedores existentes foram preservados. O servidor web anterior foi movido para `legacy/web/` (`server.py`, `test_server.py` e `static/`) e não é usado pelo desktop. A API Express é compilada em um único arquivo com esbuild. O frontend de produção é servido pela API local e recebe CSP do Helmet; o renderer não executa Node.
 
 Os serviços reservam suas próprias portas com bind em `127.0.0.1:0`; não há seleção seguida de liberação de porta. O Python informa a porta em arquivo de prontidão na pasta temporária da sessão. O Node informa sua porta por IPC. O Electron aguarda `/health` dos dois processos. Um token aleatório por execução autentica as requisições, inserido pelo processo principal e pela API; não é entregue ao JavaScript da página nem persistido em configurações.
 
@@ -100,7 +100,7 @@ npm run test:desktop
 node --test tests/python-service.test.cjs
 $env:INSTASAVE_TEST_EXE = (Resolve-Path release/win-unpacked/InstaSave.exe).Path
 npm run test:desktop
-release\win-unpacked\resources\python\downloader-service.exe --self-test test-results/fixtures
+release\win-unpacked\resources\python\downloader-service.exe --self-test tests/fixtures
 ```
 
 O teste desktop gera PNG e WebM válidos para o diagnóstico dos motores congelados. A fixture de download do Electron usa uma resposta HTTP controlada; os cliques de abertura são observados com as APIs do shell substituídas no teste para evitar abrir aplicativos externos. Isso verifica transferência e encaminhamento de caminhos, mas **não substitui downloads reais do Instagram**. O relatório da entrega separa esses testes.

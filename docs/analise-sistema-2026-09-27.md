@@ -1,5 +1,9 @@
 # Análise do sistema — 27/09/2026
 
+> Nota de organização: o servidor web alternativo citado abaixo foi movido para
+> `legacy/web/` (`server.py`, `test_server.py`, `static/`). Os números de linha
+> referem-se à versão da época e podem ter mudado.
+
 ## Atualização após as correções
 
 Os sete problemas descritos no diagnóstico abaixo foram corrigidos no código:

@@ -68,6 +68,16 @@ No fluxo atual Node/Python e no aplicativo Windows, as imagens são convertidas 
 - `MediaResolver`: ponto de extensão para integrar um provedor autorizado de mídia pública completa.
 - `assets/brand/`: logo e ícone vetoriais.
 
+## Estrutura do projeto
+
+- `electron/`, `frontend/`, `backend/`, `python-service/`: código do aplicativo desktop.
+- `assets/`, `resources/`, `build/`: entradas de build (fontes, ícone, licenças e NSIS).
+- `scripts/`, `tests/`, `docs/`: automação, testes e documentação.
+- `legacy/web/`: servidor web anterior, mantido apenas para referência (não usado no desktop).
+- `dist/`, `desktop-dist/`, `release/`, `test-results/`: saídas geradas — não editar.
+
+Mapa completo e comandos por pasta: [docs/estrutura.md](docs/estrutura.md).
+
 ## Segurança
 
 A API aceita apenas caminhos de publicação `instagram.com/p`, `reel` e `reels`; remove query strings; rejeita outros hosts, portas, URLs longas e esquemas que não sejam HTTP(S). A prévia (`thumbnail_url`) é separada da URL de mídia completa (`media_url`) e jamais é usada no download. Quando o endpoint JSON anônimo do Instagram recusa uma mídia pública, um fallback adicional lê a própria página pública da publicação (sem cookies, sessão ou credenciais) e baixa o maior candidato de imagem oferecido na página. Quando a fonte expõe somente Open Graph/preview, a API recusa o download para evitar arquivos cortados. O limite de tamanho (`MAX_DOWNLOAD_MB`, em MB) vale para todos os canais; `0` desativa o limite. Para integrar um provedor autorizado que exponha várias versões, use `select_best_image_candidate()`, que seleciona a maior área válida e faz streaming dos bytes sem redimensionar ou recomprimir.

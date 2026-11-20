@@ -1,6 +1,7 @@
-"""InstaSave development server — standard-library only.
+"""InstaSave legacy web server — standard-library only.
 
-It intentionally never requests arbitrary user-provided hosts and does not
+Moved to `legacy/web/`; the desktop app does not use it. It intentionally
+never requests arbitrary user-provided hosts and does not
 attempt to bypass Instagram access controls. Connect an authorized public-media
 provider by implementing MediaResolver.resolve().
 """
@@ -23,7 +24,9 @@ from urllib.parse import urlparse, urlunparse, unquote
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 
 ROOT = Path(__file__).parent.resolve()
+PROJECT = ROOT.parents[1]
 STATIC = ROOT / "static"
+ASSETS = PROJECT / "assets"
 MAX_URL_LENGTH = 2_048
 ROUTE = re.compile(r"^/(?:p|reel|reels)/([A-Za-z0-9_-]{5,80})/?$", re.I)
 WINDOW_SECONDS, MAX_REQUESTS = 60, 12
@@ -201,7 +204,7 @@ class AppHandler(SimpleHTTPRequestHandler):
 
     def translate_path(self, path: str) -> str:
         clean = unquote(urlparse(path).path).replace("\\", "/")
-        base = (ROOT / "assets" if clean.startswith("/assets/") else STATIC).resolve()
+        base = (ASSETS if clean.startswith("/assets/") else STATIC).resolve()
         relative = clean.removeprefix("/assets/") if clean.startswith("/assets/") else clean.lstrip("/")
         try:
             target = (base / (relative or "index.html")).resolve()

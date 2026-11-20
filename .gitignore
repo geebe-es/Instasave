@@ -14,3 +14,7 @@ downloads/
 test-results/
 desktop-dist/
 .backups/
+
+# Gerados por `tsc -b` a partir de frontend/vite.config.ts
+frontend/vite.config.js
+frontend/vite.config.d.ts
