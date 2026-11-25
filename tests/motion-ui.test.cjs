@@ -98,6 +98,9 @@ test('motion ui: navigation, skeletons, results, card download, history, reduced
     await page.locator('.media-card').first().waitFor()
     assert.equal(await page.locator('.media-card').count(), 2)
     assert.match(await page.locator('.media-card').first().innerText(), /640 × 400/)
+    const previewBox = await page.locator('.media-preview').first().boundingBox()
+    assert.ok(previewBox, 'preview thumbnail is visible')
+    assert.ok(previewBox.height <= 100 && previewBox.width <= 190, `compact preview: ${previewBox.width}×${previewBox.height}`)
     assert.match(await page.locator('.batch-download').innerText(), /Baixar todas \(2\)/)
     assert.match(await page.locator('.toast').first().innerText(), /Imagens encontradas/)
     for (let attempt = 0; attempt < 6 && await page.getByRole('button', { name: 'Fechar notificação' }).count(); attempt++) {

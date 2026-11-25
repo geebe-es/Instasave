@@ -774,9 +774,9 @@
 .results,
 .skeleton-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(188px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
   align-content: start;
-  gap: 10px;
+  gap: 8px;
 }
 
 .motion-card {
@@ -813,6 +813,7 @@
   place-items: center;
   width: 100%;
   aspect-ratio: 16 / 9;
+  max-height: 88px;
   overflow: hidden;
   background:
     radial-gradient(circle at 50% 40%, rgba(147, 51, 234, 0.16), transparent 65%),
@@ -964,6 +965,7 @@
 .skeleton-card__preview {
   width: 100%;
   aspect-ratio: 16 / 9;
+  max-height: 88px;
   border-radius: 0;
 }
 
