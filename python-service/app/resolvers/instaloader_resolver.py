@@ -10,13 +10,19 @@ import instaloader
 from app.models.media import ServiceError
 from app.services.download_service import DownloadStore
 from app.services.image_service import convert_to_png
+from app.services.session_service import load_cookies
 from app.utils.filename import media_filename
 
 LOGGER = logging.getLogger(__name__)
 
 
 class InstaloaderResolver:
-    """Anonymous resolver. It never loads a session, cookie, or credentials."""
+    """Resolver that works anonymously by default and reuses an optional session.
+
+    No credentials are ever requested. The optional session is a cookie file
+    exported by the desktop app after the user signs in through its own login
+    window; without one the resolver stays completely anonymous.
+    """
 
     def __init__(self, store: DownloadStore, timeout_seconds: int):
         self.store = store
@@ -25,6 +31,16 @@ class InstaloaderResolver:
             save_metadata=False, compress_json=False, quiet=True, max_connection_attempts=1,
         )
         self.loader.context.request_timeout = timeout_seconds
+        self.authenticated = False
+        cookies = load_cookies()
+        if cookies.get("sessionid") and cookies.get("csrftoken"):
+            try:
+                self.loader.load_session("instasave", cookies)
+                self.authenticated = True
+            except Exception as error:  # A malformed cookie file must not break anonymous use.
+                LOGGER.warning("[Instaloader] session ignored: %s", type(error).__name__)
+        else:
+            self.loader.context.update_cookies(cookies)
 
     @staticmethod
     def _dimensions(item: object) -> tuple[int | None, int | None]:
@@ -142,10 +158,19 @@ class InstaloaderResolver:
             raise
         except Exception as error:
             message = str(error).lower()
-            if any(term in message for term in ("login", "challenge", "checkpoint", "private", "forbidden", "401", "403", "metadata failed")):
-                raise ServiceError("SOURCE_ACCESS_RESTRICTED", "O Instagram não disponibilizou esta mídia publicamente para o servidor.", 403) from error
-            if "429" in message or "rate" in message:
-                raise ServiceError("RATE_LIMITED", "O Instagram limitou temporariamente novas consultas. Tente mais tarde.", 429) from error
+            if "429" in message or "too many requests" in message or "please wait" in message:
+                raise ServiceError(
+                    "RATE_LIMITED",
+                    "O Instagram bloqueou temporariamente este computador. Aguarde alguns minutos ou conecte sua conta em Configurações.",
+                    429,
+                ) from error
+            if any(term in message for term in ("login", "challenge", "checkpoint", "require_login", "private", "forbidden", "401", "403", "metadata failed")):
+                reason = (
+                    "A conta conectada não tem acesso a esta publicação."
+                    if self.authenticated
+                    else "O Instagram exige login para liberar esta publicação. Conecte sua conta em Configurações."
+                )
+                raise ServiceError("SOURCE_ACCESS_RESTRICTED", reason, 403) from error
             raise ServiceError("SOURCE_UNAVAILABLE", "Não foi possível obter a mídia pública no momento.", 503) from error
 
     def resolve_story(self, username: str, media_id: str) -> dict:
@@ -160,15 +185,19 @@ class InstaloaderResolver:
             raise ServiceError("STORY_UNAVAILABLE", "A conta deste story não está disponível.", 404) from error
         except Exception as error:
             message = str(error).lower()
-            if any(term in message for term in ("login", "challenge", "checkpoint", "private", "forbidden", "401", "403")):
+            if "429" in message or "too many requests" in message or "please wait" in message:
+                raise ServiceError(
+                    "RATE_LIMITED",
+                    "O Instagram bloqueou temporariamente este computador. Aguarde alguns minutos ou conecte sua conta em Configurações.",
+                    429,
+                ) from error
+            if any(term in message for term in ("login", "challenge", "checkpoint", "require_login", "private", "forbidden", "401", "403")):
                 # Anonymous story access is typically refused by Instagram.
                 raise ServiceError(
                     "STORY_ACCESS_RESTRICTED",
-                    "O Instagram só disponibiliza stories para contas conectadas e autorizadas. O InstaSave não contorna controles de acesso.",
+                    "O Instagram só disponibiliza stories para contas conectadas e autorizadas. Conecte sua conta em Configurações.",
                     403,
                 ) from error
-            if "429" in message or "rate" in message:
-                raise ServiceError("RATE_LIMITED", "O Instagram limitou temporariamente novas consultas. Tente mais tarde.", 429) from error
             raise ServiceError("STORY_UNAVAILABLE", "Este story não está mais disponível ou expirou.", 404) from error
         if not getattr(story, "is_video", False):
             raise ServiceError("NO_VIDEO", "Este story não contém vídeo. Ele também está disponível no menu de imagens.", 404)

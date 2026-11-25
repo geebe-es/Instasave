@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
-import { IconDownload, IconHistory, IconRefresh, IconSettings, IconVideo } from './Icons'
+import { IconBehance, IconDownload, IconHistory, IconRefresh, IconSettings, IconVideo } from './Icons'
 import { AnimatedIcon } from './motion/AnimatedIcon'
 import type { Page } from '../types'
 
 const ITEMS = [
   { id: 'download' as const, label: 'Imagens', icon: IconDownload, variant: 'download' as const },
   { id: 'videos' as const, label: 'Vídeos', icon: IconVideo, variant: 'download' as const },
+  { id: 'behance' as const, label: 'Behance', icon: IconBehance, variant: 'download' as const },
   { id: 'history' as const, label: 'Histórico', icon: IconHistory, variant: 'history' as const },
   { id: 'settings' as const, label: 'Configurações', icon: IconSettings, variant: 'settings' as const },
   { id: 'updates' as const, label: 'Atualizações', icon: IconRefresh, variant: 'refresh' as const },

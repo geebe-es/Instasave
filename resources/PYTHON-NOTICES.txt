@@ -2221,7 +2221,7 @@ freely, subject to the following restrictions:
 3. This notice may not be removed or altered from any source distribution.
 
 
-===== pip 26.2.1 =====
+===== pip 26.2.2 =====
 
 @Switch01
 A_Rog

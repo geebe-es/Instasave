@@ -117,3 +117,11 @@ export function IconExpand(props: IconProps) {
 export function IconFilm(props: IconProps) {
   return <Icon {...props}><rect x="3" y="5" width="18" height="14" rx="2" /><path d="M7 5v14" /><path d="M17 5v14" /><path d="M3 9h4" /><path d="M17 9h4" /><path d="M3 15h4" /><path d="M17 15h4" /></Icon>
 }
+
+export function IconBehance(props: IconProps) {
+  return <Icon {...props}><path d="M3 6.5h5.2a3 3 0 0 1 0 6H3Z" /><path d="M3 12.5h5.7a3 3 0 0 1 0 6H3Z" /><path d="M15 14.6h6a3 3 0 0 0-6 0Z" /><path d="M15 14.6a3 3 0 0 0 6 2.4" /><path d="M16 6.5h4" /></Icon>
+}
+
+export function IconUser(props: IconProps) {
+  return <Icon {...props}><circle cx="12" cy="8" r="3.5" /><path d="M4.5 20a7.5 7.5 0 0 1 15 0" /></Icon>
+}

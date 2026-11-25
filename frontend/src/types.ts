@@ -1,4 +1,4 @@
-export type Page = 'download' | 'videos' | 'history' | 'settings' | 'updates'
+export type Page = 'download' | 'videos' | 'behance' | 'history' | 'settings' | 'updates'
 
 export type Status = {
   type: 'loading' | 'error' | 'success'

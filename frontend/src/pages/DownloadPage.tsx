@@ -18,6 +18,8 @@ type DownloadPageProps = {
   downloads: Record<string, DownloadStatus>
   activeMediaId: string | null
   onDownload: (media: Media) => void
+  onDownloadAll: (items: Media[]) => void
+  onDropLink: (value: string) => void
   onOpenFile: (id: string) => void
   onRetry: () => void
   folder: string
@@ -25,6 +27,8 @@ type DownloadPageProps = {
   onSelectFolder: () => void
   onOpenFolder: (id?: string) => void
   desktopAvailable: boolean
+  onConnectAccount: () => void
+  accountConnected: boolean
 }
 
 export function DownloadPage({
@@ -38,6 +42,8 @@ export function DownloadPage({
   downloads,
   activeMediaId,
   onDownload,
+  onDownloadAll,
+  onDropLink,
   onOpenFile,
   onRetry,
   folder,
@@ -45,11 +51,13 @@ export function DownloadPage({
   onSelectFolder,
   onOpenFolder,
   desktopAvailable,
+  onConnectAccount,
+  accountConnected,
 }: DownloadPageProps) {
   return (
     <div className="download-page">
       <Hero />
-      <Composer url={url} onUrlChange={onUrlChange} onSubmit={onSubmit} onPaste={onPaste} loading={loading} />
+      <Composer url={url} onUrlChange={onUrlChange} onSubmit={onSubmit} onPaste={onPaste} loading={loading} onDropLink={onDropLink} />
       <FolderBar folder={folder} error={folderError} onSelect={onSelectFolder} onOpen={() => onOpenFolder()} available={desktopAvailable} />
       <StatusBanner status={status} />
       <MediaPanel
@@ -60,6 +68,9 @@ export function DownloadPage({
         activeMediaId={activeMediaId}
         onDownload={onDownload}
         onRetry={onRetry}
+        onDownloadAll={onDownloadAll}
+        onConnectAccount={onConnectAccount}
+        accountConnected={accountConnected}
       />
       <DownloadActivity downloads={downloads} onOpenFile={onOpenFile} onOpenFolder={onOpenFolder} />
     </div>

@@ -17,6 +17,7 @@ import yt_dlp
 from app.models.media import ServiceError
 from app.services.download_service import DownloadStore
 from app.services.image_service import convert_to_png
+from app.services.session_service import cookie_file
 from app.utils.filename import media_filename
 
 LOGGER = logging.getLogger(__name__)
@@ -37,12 +38,17 @@ class WebpageResolver:
 
     @staticmethod
     def _options() -> dict:
-        # Same anonymous approach as yt-dlp: parse the public webpage only.
-        return {
+        # Parse the public webpage; the optional session cookie is only used
+        # when the user connected an account in the app settings.
+        options = {
             "quiet": True, "no_warnings": True, "noplaylist": False,
             "socket_timeout": 30, "retries": 0,
             "ignore_no_formats_error": True,
         }
+        cookies = cookie_file()
+        if cookies is not None:
+            options["cookiefile"] = str(cookies)
+        return options
 
     # --- media selection ---------------------------------------------------
 
@@ -213,10 +219,18 @@ class WebpageResolver:
             raise
         except Exception as error:
             message = str(error).lower()
-            if any(term in message for term in ("login", "challenge", "checkpoint", "private", "forbidden", "401", "403", "myaccount", "sign in")):
-                raise ServiceError("SOURCE_ACCESS_RESTRICTED", "O Instagram não disponibilizou esta mídia publicamente para o servidor.", 403) from error
-            if "429" in message or "rate" in message:
-                raise ServiceError("RATE_LIMITED", "O Instagram limitou temporariamente novas consultas. Tente mais tarde.", 429) from error
+            if "429" in message or "too many requests" in message or "please wait" in message:
+                raise ServiceError(
+                    "RATE_LIMITED",
+                    "O Instagram bloqueou temporariamente este computador. Aguarde alguns minutos ou conecte sua conta em Configurações.",
+                    429,
+                ) from error
+            if any(term in message for term in ("login", "challenge", "checkpoint", "require_login", "private", "forbidden", "401", "403", "myaccount", "sign in")):
+                raise ServiceError(
+                    "SOURCE_ACCESS_RESTRICTED",
+                    "O Instagram exige login para esta publicação. Conecte sua conta em Configurações.",
+                    403,
+                ) from error
             raise ServiceError("SOURCE_UNAVAILABLE", "Não foi possível obter a mídia pública no momento.", 503) from error
         if not info:
             raise ServiceError("SOURCE_UNAVAILABLE", "O Instagram não retornou dados para esta publicação.", 503)

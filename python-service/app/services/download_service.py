@@ -41,6 +41,9 @@ class DownloadStore:
             record = self.records.get(media_id)
             if not record or record[1] <= time.time() or not record[0].path.is_file():
                 return None
+            # Sliding TTL: previews and downloads keep the item alive while the
+            # user is still working with the result list.
+            self.records[media_id] = (record[0], time.time() + self.ttl_seconds)
             return record[0]
 
     def cleanup(self) -> int:

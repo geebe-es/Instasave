@@ -1,6 +1,7 @@
 import { FolderBar } from '../components/FolderBar'
-import { IconInfo, IconSettings, IconShield, IconSparkles } from '../components/Icons'
+import { IconInfo, IconSettings, IconShield, IconSparkles, IconUser } from '../components/Icons'
 import { GlassPanel } from '../components/ui/GlassPanel'
+import { GlowButton } from '../components/ui/GlowButton'
 
 type SettingsPageProps = {
   folder: string
@@ -12,6 +13,9 @@ type SettingsPageProps = {
   systemReduced: boolean
   reduceMotion: boolean
   onReduceMotionChange: (value: boolean) => void
+  accountConnected: boolean
+  onConnectAccount: () => void
+  onDisconnectAccount: () => void
 }
 
 export function SettingsPage({
@@ -24,6 +28,9 @@ export function SettingsPage({
   systemReduced,
   reduceMotion,
   onReduceMotionChange,
+  accountConnected,
+  onConnectAccount,
+  onDisconnectAccount,
 }: SettingsPageProps) {
   const motionReduced = systemReduced || reduceMotion
   return (
@@ -75,6 +82,36 @@ export function SettingsPage({
           </div>
         </GlassPanel>
 
+        <GlassPanel className="settings-card settings-card--account">
+          <div className="settings-card__heading">
+            <span className="settings-card__icon settings-card__icon--blue"><IconUser size={18} /></span>
+            <div><h2>Conta do Instagram</h2><p>Opcional. Melhora a análise de publicações restritas.</p></div>
+          </div>
+          <div className="setting-row">
+            <div>
+              <strong>{accountConnected ? 'Conta conectada' : 'Acesso público'}</strong>
+              <small>
+                {accountConnected
+                  ? 'O InstaSave usa os cookies da sessão criada na janela de login. Nenhuma senha é armazenada.'
+                  : 'Sem conta, o Instagram pode bloquear algumas publicações. Conectar só é necessário nesses casos.'}
+              </small>
+            </div>
+            <span className={`account-badge ${accountConnected ? 'is-on' : ''}`.trim()} aria-hidden="true">
+              {accountConnected ? 'Ativa' : 'Pública'}
+            </span>
+          </div>
+          <div className="setting-actions">
+            {accountConnected ? (
+              <GlowButton size="sm" variant="secondary" onClick={onDisconnectAccount}>Desconectar conta</GlowButton>
+            ) : (
+              <GlowButton size="sm" variant="secondary" icon={<IconUser size={15} />} disabled={!desktopAvailable} onClick={onConnectAccount}>
+                Conectar conta
+              </GlowButton>
+            )}
+            <small>O login abre dentro do próprio InstaSave; nenhuma credencial passa pelo servidor local.</small>
+          </div>
+        </GlassPanel>
+
         <GlassPanel className="settings-card settings-card--wide settings-card--about">
           <div className="settings-card__heading">
             <span className="settings-card__icon settings-card__icon--violet"><IconInfo size={18} /></span>
@@ -83,7 +120,7 @@ export function SettingsPage({
           <div className="about-grid">
             <div><small>Versão</small><strong>v{version || '1.0.0'}</strong></div>
             <div><small>Formato das imagens</small><strong>PNG sem perdas</strong></div>
-            <div><small>Conteúdo</small><strong><IconShield size={14} />Apenas mídias públicas</strong></div>
+            <div><small>Conteúdo</small><strong><IconShield size={14} />Respeita o acesso da conta</strong></div>
           </div>
         </GlassPanel>
       </div>

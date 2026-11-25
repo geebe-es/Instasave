@@ -9,18 +9,20 @@ from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse, JSONResponse
+from pydantic import BaseModel, Field
 
 from app.models.media import ResolveRequest, ServiceError
 from app.services.resolve_service import ResolveService
 from app.services.cleanup_service import run_cleanup
 from app.services.download_service import DownloadStore
+from app.services.behance_service import store_project
 
 ROOT = Path(__file__).resolve().parents[1]
 DOWNLOADS = Path(os.getenv("INSTASAVE_TEMP_DIR", str(ROOT / "downloads")))
-TTL_SECONDS = int(os.getenv("FILE_TTL_MINUTES", "30")) * 60
+TTL_SECONDS = int(os.getenv("FILE_TTL_MINUTES", "120")) * 60
 # MAX_DOWNLOAD_MB <= 0 keeps downloads unlimited.
 MAX_BYTES = max(0, int(os.getenv("MAX_DOWNLOAD_MB", "0"))) * 1024 * 1024
-RESOLVE_TIMEOUT = int(os.getenv("RESOLVE_TIMEOUT", "30"))
+RESOLVE_TIMEOUT = int(os.getenv("RESOLVE_TIMEOUT", "40"))
 STORE = DownloadStore(DOWNLOADS, TTL_SECONDS, MAX_BYTES)
 RESOLVER = ResolveService(STORE, RESOLVE_TIMEOUT)
 
@@ -77,6 +79,18 @@ async def resolve(payload: ResolveRequest, request: Request):
             operation.cancel()
         with suppress(asyncio.CancelledError):
             await operation
+
+
+class BehanceRequest(BaseModel):
+    project: str = Field(min_length=1, max_length=120)
+    urls: list[str] = Field(min_length=1, max_length=80)
+
+
+@app.post("/behance/store")
+async def behance_store(payload: BehanceRequest):
+    # Downloads and PNG conversion are blocking; keep the event loop free.
+    result = await asyncio.to_thread(store_project, STORE, payload.urls, payload.project)
+    return {"success": True, **result}
 
 
 @app.get("/download/{media_id}")

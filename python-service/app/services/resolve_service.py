@@ -2,12 +2,14 @@
 from __future__ import annotations
 
 import asyncio
+import copy
 import json
 import multiprocessing
 import os
 import shutil
 import tempfile
 import threading
+import time
 from multiprocessing.connection import wait
 from pathlib import Path
 
@@ -29,10 +31,14 @@ def resolve_worker(url: str, directory: str, ttl: int, max_bytes: int, timeout: 
     from app.resolvers.ytdlp_resolver import YtDlpResolver
 
     store = DownloadStore(Path(directory), ttl, max_bytes)
+    # Split the global budget across channels: a hung anonymous request must
+    # not consume the whole deadline and starve the fallbacks.
+    channel_timeout = max(5, min(15, timeout // 3))
     resolver = InstagramResolver(
-        InstaloaderResolver(store, timeout),
-        YtDlpResolver(store, timeout),
-        WebpageResolver(store, timeout),
+        InstaloaderResolver(store, channel_timeout),
+        YtDlpResolver(store, channel_timeout),
+        WebpageResolver(store, channel_timeout),
+        budget_seconds=timeout,
     )
     try:
         result = {"result": resolver.resolve(url, mode)}
@@ -44,14 +50,34 @@ def resolve_worker(url: str, directory: str, ttl: int, max_bytes: int, timeout: 
 
 
 class ResolveService:
+    cache_seconds = 600
+
     def __init__(self, store: DownloadStore, timeout: int, max_workers: int = 2):
         self.store, self.timeout, self.max_workers = store, timeout, max_workers
         self.active = 0
+        self.cache: dict[tuple[str, str], tuple[float, dict]] = {}
         self.context = multiprocessing.get_context("spawn")
+
+    def _cached(self, url: str, mode: str) -> dict | None:
+        cached = self.cache.get((url, mode))
+        if cached is None:
+            return None
+        created, result = cached
+        if time.monotonic() - created > self.cache_seconds:
+            self.cache.pop((url, mode), None)
+            return None
+        # The list is only reusable while every stored file still exists.
+        if all(self.store.get(item["id"]) is not None for item in result["media"]):
+            return copy.deepcopy(result)
+        self.cache.pop((url, mode), None)
+        return None
 
     async def resolve(self, url: str, mode: str = "all") -> dict:
         parsed = parse_instagram_url(url)
         url = parsed.normalized
+        cached = self._cached(url, mode)
+        if cached is not None:
+            return cached
         if self.active >= self.max_workers:
             raise ServiceError("SERVICE_BUSY", "Há análises em andamento. Tente novamente em instantes.", 429)
         self.active += 1
@@ -68,7 +94,11 @@ class ResolveService:
                     while process.is_alive():
                         await asyncio.sleep(0.05)
             except TimeoutError as error:
-                raise ServiceError("RESOLVE_TIMEOUT", "A análise da publicação demorou demais. Tente novamente.", 504) from error
+                raise ServiceError(
+                    "RESOLVE_TIMEOUT",
+                    "A análise demorou demais. Verifique sua conexão, tente novamente em instantes ou conecte sua conta em Configurações.",
+                    504,
+                ) from error
             process.join()
             result_file = directory / "result.json"
             if process.exitcode != 0 or not result_file.is_file():
@@ -85,6 +115,7 @@ class ResolveService:
                 published.append((item["id"], destination))
                 self.store.register(item["id"], destination, item["filename"], item.get("width"), item.get("height"))
             succeeded = True
+            self.cache[(url, mode)] = (time.monotonic(), copy.deepcopy(result))
             return result
         finally:
             # Reap before removing files or accepting another operation.

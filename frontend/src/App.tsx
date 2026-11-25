@@ -6,6 +6,7 @@ import { IconImage } from './components/Icons'
 import { LoadingSpinner } from './components/ui/LoadingSpinner'
 import { useToast } from './components/ui/Toast'
 import { useSystemReducedMotion } from './hooks/useReducedMotion'
+import { BehancePage } from './pages/BehancePage'
 import { DownloadPage } from './pages/DownloadPage'
 import { HistoryPage } from './pages/HistoryPage'
 import { SettingsPage } from './pages/SettingsPage'
@@ -70,13 +71,22 @@ export function App() {
   const [videoKind, setVideoKind] = useState<VideoLinkKind | null>(null)
   const [videoStatus, setVideoStatus] = useState<Status>(null)
   const [videoLoading, setVideoLoading] = useState(false)
-  const [videoQueue, setVideoQueue] = useState<Media[]>([])
+  const [behanceUrl, setBehanceUrl] = useState('')
+  const [behanceMedia, setBehanceMedia] = useState<Media[]>([])
+  const [behanceTitle, setBehanceTitle] = useState('')
+  const [behanceStatus, setBehanceStatus] = useState<Status>(null)
+  const [behanceLoading, setBehanceLoading] = useState(false)
+  const [accountConnected, setAccountConnected] = useState(false)
+  const [downloadQueue, setDownloadQueue] = useState<Media[]>([])
 
   const systemReduced = useSystemReducedMotion()
   const pushToast = useToast()
   const loadingRef = useRef(false)
   const activeMediaRef = useRef<string | null>(null)
   const videoOwnedRef = useRef<Set<string>>(new Set())
+  const behanceOwnedRef = useRef<Set<string>>(new Set())
+  const reanalyzeRef = useRef<() => boolean>(() => false)
+  const expiredRetryAtRef = useRef(0)
 
   useEffect(() => {
     const timer = window.setTimeout(() => setBooting(false), 1200)
@@ -95,6 +105,9 @@ export function App() {
     window.desktop.getInfo()
       .then(value => { setInfo(value); setFolder(value.downloadFolder); setFolderError('') })
       .catch(() => setFolderError('Não foi possível ler a pasta de downloads.'))
+    window.desktop.authStatus()
+      .then(value => setAccountConnected(value.connected))
+      .catch(() => setAccountConnected(false))
   }, [])
 
   const openFolder = useCallback(async (id?: string) => {
@@ -127,6 +140,9 @@ export function App() {
         if (value.id && videoOwnedRef.current.has(value.id)) {
           setVideoStatus({ type: 'success', message: 'Download concluído!' })
         }
+        if (value.id && behanceOwnedRef.current.has(value.id)) {
+          setBehanceStatus({ type: 'success', message: 'Download concluído!' })
+        }
         setActiveMediaId(null)
         activeMediaRef.current = null
         pushToast({
@@ -140,11 +156,26 @@ export function App() {
         if (value.id && videoOwnedRef.current.has(value.id)) {
           setVideoStatus({ type: 'error', message: value.message ?? 'Download interrompido. Tente novamente.' })
         }
+        if (value.id && behanceOwnedRef.current.has(value.id)) {
+          setBehanceStatus({ type: 'error', message: value.message ?? 'Download interrompido. Tente novamente.' })
+        }
         setActiveMediaId(null)
         activeMediaRef.current = null
+        const expired = /(expirou|expired)/i.test(value.message ?? '')
+        if (expired && Date.now() - expiredRetryAtRef.current > 30_000 && reanalyzeRef.current()) {
+          expiredRetryAtRef.current = Date.now()
+          pushToast({ kind: 'info', title: 'Arquivos renovados', message: 'A análise foi refeita porque os arquivos temporários expiraram. Baixe novamente.' })
+          return
+        }
         pushToast({ kind: 'error', title: 'Download interrompido', message: value.message ?? 'Tente novamente em instantes.' })
       } else {
         setStatus({ type: 'loading', message: 'Baixando…' })
+        if (value.id && behanceOwnedRef.current.has(value.id)) {
+          setBehanceStatus({ type: 'loading', message: 'Baixando…' })
+        }
+        if (value.id && videoOwnedRef.current.has(value.id)) {
+          setVideoStatus({ type: 'loading', message: 'Baixando…' })
+        }
       }
     })
   }, [openFolder, pushToast])
@@ -167,7 +198,7 @@ export function App() {
     loadingRef.current = true
     setLoading(true)
     setMedia([])
-    setStatus({ type: 'loading', message: 'Analisando link público…' })
+    setStatus({ type: 'loading', message: 'Analisando link…' })
     try {
       const response = await fetch('/api/instagram/resolve', {
         method: 'POST',
@@ -253,7 +284,8 @@ export function App() {
       if (found.length === 1) {
         setVideoStatus({ type: 'success', message: '1 vídeo encontrado. Download automático iniciado.' })
         pushToast({ kind: 'success', title: 'Vídeo encontrado', message: 'Download iniciado automaticamente.' })
-        setVideoQueue(previous => [...previous, found[0]])
+        videoOwnedRef.current.add(found[0].id)
+        setDownloadQueue(previous => [...previous, found[0]])
       } else {
         setVideoStatus({ type: 'success', message: `${found.length} vídeos encontrados. Selecione os que deseja baixar.` })
         pushToast({ kind: 'success', title: 'Vídeos encontrados', message: 'Selecione os vídeos e confirme o download.' })
@@ -286,6 +318,17 @@ export function App() {
     }
   }
 
+  // Re-analyze the publication shown on the current page when the temporary
+  // files expire. Behance is intentionally excluded: re-extracting a project is
+  // expensive, so the user is asked to click "Analisar projeto" again.
+  useEffect(() => {
+    reanalyzeRef.current = () => {
+      if (page === 'videos') { void resolveVideo(videoUrl); return true }
+      if (page === 'download') { void resolveLink(url); return true }
+      return false
+    }
+  }, [page, url, videoUrl, resolveLink, resolveVideo])
+
   const selectFolder = useCallback(async () => {
     if (!window.desktop) return
     try {
@@ -316,32 +359,140 @@ export function App() {
     }
   }, [pushToast])
 
-  const downloadMany = useCallback((items: Media[]) => {
-    setVideoQueue(previous => [...previous, ...items.filter(item => item.id !== activeMediaRef.current)])
+  const downloadMany = useCallback((items: Media[], owner?: 'video' | 'behance') => {
+    const accepted = items.filter(item => item.id !== activeMediaRef.current)
+    if (!accepted.length) return
+    const target = owner === 'behance' ? behanceOwnedRef.current : owner === 'video' ? videoOwnedRef.current : null
+    for (const item of accepted) target?.add(item.id)
+    setDownloadQueue(previous => [...previous, ...accepted])
   }, [])
 
   const downloadVideo = useCallback((item: Media) => {
-    downloadMany([item])
+    downloadMany([item], 'video')
   }, [downloadMany])
 
-  // Sequential video queue: one download at a time, ever. The next item starts
-  // as soon as the previous one completes or fails (activeMediaId back to null).
+  const downloadBehance = useCallback((item: Media) => {
+    downloadMany([item], 'behance')
+  }, [downloadMany])
+
+  const downloadAllImages = useCallback((items: Media[]) => {
+    if (!items.length) return
+    downloadMany(items)
+    setStatus({ type: 'loading', message: `Preparando ${items.length} download${items.length === 1 ? '' : 's'}…` })
+    pushToast({ kind: 'info', title: 'Fila de downloads', message: `${items.length} arquivo${items.length === 1 ? '' : 's'} na fila.`, duration: 3200 })
+  }, [downloadMany, pushToast])
+
+  // Sequential queue: one download at a time, ever. The next item starts as
+  // soon as the previous one completes or fails (activeMediaId back to null).
   useEffect(() => {
-    if (!videoQueue.length) return
+    if (!downloadQueue.length) return
     if (activeMediaRef.current) return
-    const [next, ...rest] = videoQueue
-    setVideoQueue(rest)
-    videoOwnedRef.current.add(next.id)
+    const [next, ...rest] = downloadQueue
+    setDownloadQueue(rest)
     void startDownload(next)
-  }, [videoQueue, activeMediaId, startDownload])
+  }, [downloadQueue, activeMediaId, startDownload])
+
+  const connectAccount = useCallback(async () => {
+    if (!window.desktop) return
+    try {
+      const result = await window.desktop.authLogin()
+      setAccountConnected(result.connected)
+      if (result.connected) {
+        pushToast({ kind: 'success', title: 'Conta conectada', message: 'As próximas análises usarão sua sessão do Instagram.' })
+        setStatus(null)
+      } else {
+        pushToast({ kind: 'info', title: 'Conta não conectada', message: 'Links públicos continuam funcionando normalmente.' })
+      }
+    } catch {
+      pushToast({ kind: 'error', title: 'Não foi possível conectar', message: 'Tente novamente em instantes.' })
+    }
+  }, [pushToast])
+
+  const disconnectAccount = useCallback(async () => {
+    if (!window.desktop) return
+    try {
+      await window.desktop.authLogout()
+      setAccountConnected(false)
+      pushToast({ kind: 'info', title: 'Conta desconectada', message: 'O InstaSave voltou a usar apenas o acesso público.' })
+    } catch {
+      pushToast({ kind: 'error', title: 'Não foi possível desconectar', message: 'Tente novamente em instantes.' })
+    }
+  }, [pushToast])
+
+  const resolveBehanceLink = useCallback(async (value: string) => {
+    const trimmed = value.trim()
+    if (!window.desktop) {
+      setBehanceStatus({ type: 'error', message: 'O download do Behance está disponível no aplicativo desktop.' })
+      return
+    }
+    if (!trimmed) {
+      setBehanceStatus({ type: 'error', message: 'Insira um link de projeto do Behance.' })
+      return
+    }
+    if (!navigator.onLine) {
+      setBehanceStatus({ type: 'error', message: 'Sem conexão com a internet. Verifique sua conexão e tente novamente.' })
+      return
+    }
+    if (!/^https?:\/\/(www\.)?behance\.net\/gallery\/\d+\/[A-Za-z0-9_-]+\/?$/i.test(trimmed)) {
+      setBehanceStatus({ type: 'error', message: 'Insira o link de um projeto público do Behance (behance.net/gallery/…).' })
+      return
+    }
+    if (loadingRef.current) return
+    loadingRef.current = true
+    setBehanceLoading(true)
+    setBehanceMedia([])
+    setBehanceTitle('')
+    setBehanceStatus({ type: 'loading', message: 'Abrindo o projeto e coletando as imagens…' })
+    try {
+      const result = await window.desktop.behanceResolve(trimmed)
+      const found = result.media ?? []
+      setBehanceMedia(found)
+      setBehanceTitle(result.title)
+      setBehanceStatus({
+        type: 'success',
+        message: found.length
+          ? `${found.length} imagem${found.length === 1 ? '' : 's'} em alta resolução pronta${found.length === 1 ? '' : 's'} para baixar.`
+          : 'Nenhuma imagem disponível foi encontrada neste projeto.',
+      })
+      if (found.length) {
+        pushToast({ kind: 'success', title: 'Projeto analisado', message: `${found.length} imagem${found.length === 1 ? '' : 's'} encontrada${found.length === 1 ? '' : 's'}.` })
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Não foi possível analisar o projeto.'
+      setBehanceStatus({ type: 'error', message })
+      pushToast({ kind: 'error', title: 'Não foi possível analisar o projeto', message })
+    } finally {
+      loadingRef.current = false
+      setBehanceLoading(false)
+    }
+  }, [pushToast])
+
+  const submitBehance = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    void resolveBehanceLink(behanceUrl)
+  }
+
+  const pasteBehance = async () => {
+    try {
+      const value = (await (window.desktop ? window.desktop.readClipboard() : navigator.clipboard.readText())).trim()
+      setBehanceUrl(value)
+      setBehanceStatus(null)
+      if (value) pushToast({ kind: 'info', title: 'Link colado', message: 'Confira o link e clique em Analisar projeto.', duration: 2800 })
+    } catch {
+      setBehanceStatus({ type: 'error', message: 'Permita o acesso à área de transferência ou cole o link manualmente.' })
+    }
+  }
 
   const desktopAvailable = Boolean(window.desktop)
-  const busy = loading || status?.type === 'loading'
+  const busy = loading || videoLoading || behanceLoading || status?.type === 'loading'
   // Estado do banner de vídeo: durante um download acionado pelo menu Vídeos,
   // espelha o estado real do download; fora disso, usa a análise local do vídeo.
   const activeVideoStatus = activeMediaId !== null && (videoOwnedRef.current.has(activeMediaId) || videos.some(video => video.id === activeMediaId))
     ? status
     : videoStatus
+  const activeBehanceStatus = activeMediaId !== null && (behanceOwnedRef.current.has(activeMediaId) || behanceMedia.some(item => item.id === activeMediaId))
+    ? status
+    : behanceStatus
 
   return (
     <div className={`app-shell ${booting ? 'is-booting' : ''}`.trim()}>
@@ -354,6 +505,8 @@ export function App() {
         mediaCount={media.length}
         videoCount={videos.length}
         videoLoading={videoLoading}
+        behanceCount={behanceMedia.length}
+        behanceLoading={behanceLoading}
         status={status}
       />
       <main className="app-main">
@@ -364,12 +517,14 @@ export function App() {
               onUrlChange={setUrl}
               onSubmit={submit}
               onPaste={paste}
+              onDropLink={value => { setUrl(value); setStatus(null) }}
               loading={loading}
               status={status}
               media={media}
               downloads={downloads}
               activeMediaId={activeMediaId}
               onDownload={startDownload}
+              onDownloadAll={downloadAllImages}
               onOpenFile={openFile}
               onRetry={() => resolveLink(url)}
               folder={folder}
@@ -377,6 +532,8 @@ export function App() {
               onSelectFolder={selectFolder}
               onOpenFolder={openFolder}
               desktopAvailable={desktopAvailable}
+              onConnectAccount={() => { void connectAccount() }}
+              accountConnected={accountConnected}
             />
           ) : null}
           {page === 'videos' ? (
@@ -395,6 +552,30 @@ export function App() {
               onDownload={downloadVideo}
               onDownloadMany={downloadMany}
               onRetry={() => resolveVideo(videoUrl)}
+              onOpenFile={openFile}
+              folder={folder}
+              folderError={folderError}
+              onSelectFolder={selectFolder}
+              onOpenFolder={openFolder}
+              desktopAvailable={desktopAvailable}
+            />
+          ) : null}
+          {page === 'behance' ? (
+            <BehancePage
+              url={behanceUrl}
+              onUrlChange={setBehanceUrl}
+              onSubmit={submitBehance}
+              onPaste={pasteBehance}
+              onDropLink={value => { setBehanceUrl(value); setBehanceStatus(null) }}
+              loading={behanceLoading}
+              status={activeBehanceStatus}
+              media={behanceMedia}
+              title={behanceTitle}
+              downloads={downloads}
+              activeMediaId={activeMediaId}
+              onDownload={downloadBehance}
+              onDownloadAll={items => downloadMany(items, 'behance')}
+              onRetry={() => resolveBehanceLink(behanceUrl)}
               onOpenFile={openFile}
               folder={folder}
               folderError={folderError}
@@ -423,6 +604,9 @@ export function App() {
               systemReduced={systemReduced}
               reduceMotion={reduceMotion}
               onReduceMotionChange={setReduceMotion}
+              accountConnected={accountConnected}
+              onConnectAccount={() => { void connectAccount() }}
+              onDisconnectAccount={() => { void disconnectAccount() }}
             />
           ) : null}
           {page === 'updates' ? <UpdatesPage version={info?.version ?? ''} /> : null}

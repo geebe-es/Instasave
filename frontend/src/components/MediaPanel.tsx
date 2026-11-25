@@ -1,5 +1,5 @@
 import type { MouseEvent } from 'react'
-import { IconAlert, IconDownload, IconImage, IconRefresh, IconVideo } from './Icons'
+import { IconAlert, IconDownload, IconImage, IconRefresh, IconUser, IconVideo } from './Icons'
 import { MotionCard } from './motion/MotionCard'
 import { GlowButton } from './ui/GlowButton'
 import { LoadingSpinner } from './ui/LoadingSpinner'
@@ -13,6 +13,12 @@ type MediaPanelProps = {
   activeMediaId: string | null
   onDownload: (media: Media) => void
   onRetry: () => void
+  title?: string
+  emptyTitle?: string
+  emptyText?: string
+  onDownloadAll?: (items: Media[]) => void
+  onConnectAccount?: () => void
+  accountConnected?: boolean
 }
 
 function completedFile(downloads: Record<string, DownloadStatus>, media: Media) {
@@ -23,13 +29,40 @@ function completedFile(downloads: Record<string, DownloadStatus>, media: Media) 
   ))
 }
 
-export function MediaPanel({ media, loading, status, downloads, activeMediaId, onDownload, onRetry }: MediaPanelProps) {
+export function MediaPanel({
+  media,
+  loading,
+  status,
+  downloads,
+  activeMediaId,
+  onDownload,
+  onRetry,
+  title = 'Imagens encontradas',
+  emptyTitle = 'Tudo pronto para começar',
+  emptyText = 'Cole o link de uma publicação do Instagram para encontrar as imagens disponíveis.',
+  onDownloadAll,
+  onConnectAccount,
+  accountConnected = false,
+}: MediaPanelProps) {
   const hasError = !loading && !media.length && status?.type === 'error'
+  const needsAccount = Boolean(onConnectAccount) && !accountConnected && hasError && /(bloqueou|exige login|conta|limite|disponibilizou)/i.test(status?.message ?? '')
+  const pending = media.filter(item => {
+    const complete = Object.values(downloads).some(download => download.state === 'completed' && download.filename && item.filename && download.filename.replace(/\s\(\d+\)(?=\.[^.]+$)/, '') === item.filename)
+    return !complete
+  })
   return (
-    <section className="media-panel" aria-label="Imagens encontradas" aria-busy={loading || undefined}>
+    <section className="media-panel" aria-label={title} aria-busy={loading || undefined}>
       <div className="panel-heading">
-        <div className="panel-heading__title"><IconImage size={16} /><h2>Imagens encontradas</h2></div>
-        <span aria-live="polite">{loading ? 'Buscando imagens…' : media.length ? `${media.length} disponível${media.length === 1 ? '' : 'is'}` : hasError ? 'Nenhuma imagem' : 'Aguardando um link…'}</span>
+        <div className="panel-heading__title"><IconImage size={16} /><h2>{title}</h2></div>
+        <div className="panel-heading__actions">
+          <span aria-live="polite">{loading ? 'Buscando imagens…' : media.length ? `${media.length} disponível${media.length === 1 ? '' : 'is'}` : hasError ? 'Nenhuma imagem' : 'Aguardando um link…'}</span>
+          {!loading && media.length > 1 && onDownloadAll ? (
+            <button type="button" className="batch-download" onClick={() => onDownloadAll(pending.length ? pending : media)}>
+              <IconDownload size={14} />
+              Baixar todas ({pending.length || media.length})
+            </button>
+          ) : null}
+        </div>
       </div>
       <div className="media-scroll" tabIndex={0} aria-label="Lista de imagens">
         {loading ? (
@@ -95,7 +128,12 @@ export function MediaPanel({ media, loading, status, downloads, activeMediaId, o
             <span className="media-error__icon" aria-hidden="true"><IconAlert size={28} /></span>
             <strong>Não foi possível encontrar as imagens</strong>
             <p>{status?.message}</p>
-            <GlowButton size="sm" icon={<IconRefresh size={15} />} onClick={onRetry}>Tentar novamente</GlowButton>
+            <div className="media-error__actions">
+              <GlowButton size="sm" icon={<IconRefresh size={15} />} onClick={onRetry}>Tentar novamente</GlowButton>
+              {needsAccount ? (
+                <GlowButton size="sm" variant="ghost" icon={<IconUser size={15} />} onClick={onConnectAccount}>Conectar conta</GlowButton>
+              ) : null}
+            </div>
           </div>
         ) : (
           <div className="empty-state">
@@ -105,8 +143,8 @@ export function MediaPanel({ media, loading, status, downloads, activeMediaId, o
               <span className="empty-orbit__ring empty-orbit__ring--three" />
               <span className="empty-orbit__icon"><IconDownload size={28} /></span>
             </div>
-            <strong>Tudo pronto para começar</strong>
-            <p>Cole o link de uma publicação do Instagram para encontrar as imagens disponíveis.</p>
+            <strong>{emptyTitle}</strong>
+            <p>{emptyText}</p>
           </div>
         )}
       </div>

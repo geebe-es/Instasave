@@ -7,6 +7,8 @@ contextBridge.exposeInMainWorld('desktop', Object.freeze({
   retry: invoke('app:retry'), details: invoke('app:details'),
   readClipboard: invoke('clipboard:read'),
   download: invoke('download:start'),
+  authStatus: invoke('auth:status'), authLogin: invoke('auth:login'), authLogout: invoke('auth:logout'),
+  behanceResolve: invoke('behance:resolve'),
   onStatus(callback) {
     const listener = (_event, value) => callback(value);
     ipcRenderer.on('app:status', listener);

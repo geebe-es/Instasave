@@ -42,7 +42,13 @@ test('motion ui: navigation, skeletons, results, card download, history, reduced
     })
     await page.waitForTimeout(250)
 
-    assert.equal(await page.locator('.nav-item').count(), 5)
+    assert.equal(await page.locator('.nav-item').count(), 6)
+
+    await page.getByRole('button', { name: 'Behance' }).click()
+    await page.getByRole('heading', { level: 1, name: /Behance/ }).waitFor()
+    await page.getByLabel('Link do projeto do Behance').fill('https://example.com/gallery/1/Nope')
+    await page.getByRole('button', { name: 'Analisar projeto' }).click()
+    assert.match(await page.locator('.status.error').innerText(), /projeto público do Behance/)
 
     await page.getByRole('button', { name: 'Histórico' }).click()
     await page.getByRole('heading', { level: 1, name: 'Histórico de downloads' }).waitFor()
@@ -92,6 +98,7 @@ test('motion ui: navigation, skeletons, results, card download, history, reduced
     await page.locator('.media-card').first().waitFor()
     assert.equal(await page.locator('.media-card').count(), 2)
     assert.match(await page.locator('.media-card').first().innerText(), /640 × 400/)
+    assert.match(await page.locator('.batch-download').innerText(), /Baixar todas \(2\)/)
     assert.match(await page.locator('.toast').first().innerText(), /Imagens encontradas/)
     for (let attempt = 0; attempt < 6 && await page.getByRole('button', { name: 'Fechar notificação' }).count(); attempt++) {
       await page.getByRole('button', { name: 'Fechar notificação' }).first().click().catch(() => undefined)

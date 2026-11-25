@@ -10,15 +10,18 @@ type HeaderProps = {
   mediaCount: number
   videoCount: number
   videoLoading: boolean
+  behanceCount: number
+  behanceLoading: boolean
   status: Status
 }
 
-export function Header({ page, onPageChange, loading, mediaCount, videoCount, videoLoading, status }: HeaderProps) {
+export function Header({ page, onPageChange, loading, mediaCount, videoCount, videoLoading, behanceCount, behanceLoading, status }: HeaderProps) {
   const resolving = loading && page === 'download'
   const resolvingVideo = videoLoading && page === 'videos'
-  const downloading = (page === 'download' || page === 'videos') && !resolving && !resolvingVideo && status?.type === 'loading'
-  const failed = (page === 'download' || page === 'videos') && status?.type === 'error'
-  const working = resolving || downloading || resolvingVideo
+  const resolvingBehance = behanceLoading && page === 'behance'
+  const downloading = (page === 'download' || page === 'videos' || page === 'behance') && !resolving && !resolvingVideo && !resolvingBehance && status?.type === 'loading'
+  const failed = (page === 'download' || page === 'videos' || page === 'behance') && status?.type === 'error'
+  const working = resolving || downloading || resolvingVideo || resolvingBehance
   const statusText = page === 'download'
     ? resolving
       ? 'Analisando link…'
@@ -39,11 +42,21 @@ export function Header({ page, onPageChange, loading, mediaCount, videoCount, vi
             : videoCount > 0
               ? `${videoCount} vídeo${videoCount === 1 ? '' : 's'} pronto${videoCount === 1 ? '' : 's'}`
               : 'Pronto para vídeos'
-      : page === 'history'
-        ? 'Sessão local ativa'
-        : page === 'settings'
-          ? 'Preferências salvas'
-          : 'Canal não configurado'
+      : page === 'behance'
+        ? resolvingBehance
+          ? 'Analisando projeto…'
+          : downloading
+            ? 'Baixando…'
+            : failed
+              ? 'Atenção'
+              : behanceCount > 0
+                ? `${behanceCount} imagem${behanceCount === 1 ? '' : 's'} pronta${behanceCount === 1 ? '' : 's'}`
+                : 'Pronto para o Behance'
+        : page === 'history'
+          ? 'Sessão local ativa'
+          : page === 'settings'
+            ? 'Preferências salvas'
+            : 'Canal não configurado'
   const warning = page === 'updates'
 
   return (

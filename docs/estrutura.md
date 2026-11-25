@@ -8,7 +8,7 @@ InstaSave/
 ├─ electron/            Processo principal, preload e splash do Electron
 ├─ frontend/            Interface React + TypeScript + Vite (src, configs)
 ├─ backend/             API Express + TypeScript (src, test)
-├─ python-service/      FastAPI e resolvedores anônimos (app, tests, entrypoints)
+├─ python-service/      FastAPI, resolvedores e sessão opcional (app, tests, entrypoints)
 ├─ assets/              Fontes e SVGs usados como publicDir do Vite
 ├─ resources/           Ícone (.ico) e avisos de licença de terceiros
 ├─ build/               Recursos do instalador NSIS (bitmaps + script)
@@ -70,6 +70,16 @@ npm --prefix backend test
 npm run test:desktop
 npm run test:ui
 ```
+
+## Recursos adicionais
+
+- `frontend/src/pages/BehancePage.tsx`: página do menu Behance; a extração da página
+  pública ocorre no processo principal (`electron/main.cjs`) e o armazenamento das
+  imagens em PNG no serviço Python (`python-service/app/services/behance_service.py`).
+- `python-service/app/services/session_service.py`: lê, sob demanda, os cookies
+  exportados pelo login opcional do Instagram. Sem arquivo, o resolvedor é anônimo.
+- O prazo dos arquivos temporários é deslizante (120 minutos) e a análise usa
+  orçamento por canal para não deixar um timeout anônimo bloquear os fallbacks.
 
 ## Ambiente de desenvolvimento
 

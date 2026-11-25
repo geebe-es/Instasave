@@ -7,13 +7,14 @@ import yt_dlp
 
 from app.models.media import ServiceError
 from app.services.download_service import DownloadStore
+from app.services.session_service import cookie_file
 from app.utils.filename import media_filename
 
 LOGGER = logging.getLogger(__name__)
 
 
 class YtDlpResolver:
-    """Fallback for public videos/Reels; no cookies or authentication options."""
+    """Fallback for public videos/Reels. Reuses the optional session cookie."""
 
     def __init__(self, store: DownloadStore, timeout_seconds: int):
         self.store = store
@@ -27,6 +28,9 @@ class YtDlpResolver:
 
     def resolve(self, url: str, shortcode: str) -> dict:
         probe_options = {"quiet": True, "no_warnings": True, "noplaylist": True, "socket_timeout": self.timeout_seconds, "retries": 0, "fragment_retries": 0, "extractor_retries": 0}
+        cookies = cookie_file()
+        if cookies is not None:
+            probe_options["cookiefile"] = str(cookies)
         media_id = None
         succeeded = False
         limit_error = None
@@ -70,10 +74,18 @@ class YtDlpResolver:
             if limit_error is not None:
                 raise limit_error from error
             message = str(error).lower()
-            if any(term in message for term in ("login", "challenge", "checkpoint", "private", "forbidden", "403", "metadata failed")):
-                raise ServiceError("SOURCE_ACCESS_RESTRICTED", "O Instagram não disponibilizou este vídeo publicamente para o servidor.", 403) from error
-            if "429" in message or "rate" in message:
-                raise ServiceError("RATE_LIMITED", "O Instagram limitou temporariamente novas consultas. Tente mais tarde.", 429) from error
+            if "429" in message or "too many requests" in message or "please wait" in message:
+                raise ServiceError(
+                    "RATE_LIMITED",
+                    "O Instagram bloqueou temporariamente este computador. Aguarde alguns minutos ou conecte sua conta em Configurações.",
+                    429,
+                ) from error
+            if any(term in message for term in ("login", "challenge", "checkpoint", "require_login", "private", "forbidden", "403", "metadata failed")):
+                raise ServiceError(
+                    "SOURCE_ACCESS_RESTRICTED",
+                    "O Instagram exige login para este vídeo. Conecte sua conta em Configurações.",
+                    403,
+                ) from error
             raise ServiceError("SOURCE_UNAVAILABLE", "Não foi possível obter o vídeo público no momento.", 503) from error
         finally:
             if media_id and not succeeded:

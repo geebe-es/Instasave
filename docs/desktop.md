@@ -11,6 +11,12 @@ InstaSave.exe (Electron, processo principal)
 
 O frontend, CSS, logo e resolvedores existentes foram preservados. O servidor web anterior foi movido para `legacy/web/` (`server.py`, `test_server.py` e `static/`) e não é usado pelo desktop. A API Express é compilada em um único arquivo com esbuild. O frontend de produção é servido pela API local e recebe CSP do Helmet; o renderer não executa Node.
 
+O acesso ao Instagram continua **anônimo por padrão**. Como o Instagram vem bloqueando consultas anônimas de forma intermitente (401/429/timeouts), o app oferece uma **conta opcional**: em Configurações, "Conectar conta" abre uma janela de login do próprio Electron; somente os cookies de `instagram.com` dessa sessão são exportados para `userData/instagram-cookies.txt` e reutilizados pelo resolvedor Python. Nenhuma senha é enviada ao serviço local. "Desconectar conta" apaga esse arquivo e limpa a sessão.
+
+O orçamento da análise é dividido entre os canais (Instaloader → página pública → yt-dlp para Reels), com timeouts curtos e fallbacks que só começam se ainda couberem no prazo global. Falhas de bloqueio agora retornam rápido com uma mensagem acionável em vez de expirar em silêncio. Arquivos temporários têm TTL deslizante de 120 minutos, e uma prévia ou download renova esse prazo.
+
+O menu **Behance** abre projetos públicos com o Chromium do próprio Electron (o Behance bloqueia clientes HTTP simples), escolhe a maior variante disponível das imagens no CDN oficial e salva cada uma como PNG pelo mesmo serviço Python. Somente URLs HTTPS de `mir-s3-cdn-cf.behance.net` são aceitas no backend.
+
 Os serviços reservam suas próprias portas com bind em `127.0.0.1:0`; não há seleção seguida de liberação de porta. O Python informa a porta em arquivo de prontidão na pasta temporária da sessão. O Node informa sua porta por IPC. O Electron aguarda `/health` dos dois processos. Um token aleatório por execução autentica as requisições, inserido pelo processo principal e pela API; não é entregue ao JavaScript da página nem persistido em configurações.
 
 O serviço Python é empacotado com PyInstaller **onedir**, evitando extração de executáveis a cada abertura. Dependências, extratores do yt-dlp, certificados e metadados são coletados. Os binários ficam em `resources/python`, fora do ASAR. A API e a interface ficam no ASAR.
@@ -70,11 +76,12 @@ Instalação por usuário em `%LOCALAPPDATA%\Programs\InstaSave`, sem elevação
 | Dados | Destino |
 |---|---|
 | Preferência de downloads | `app.getPath('userData')/preferences.json` |
+| Sessão opcional do Instagram | `app.getPath('userData')/instagram-cookies.txt` (somente se o usuário conectar) |
 | Logs de ciclo de vida | `app.getPath('userData')/logs/desktop.log` |
 | Temporários de mídia | `app.getPath('temp')/InstaSave/session-*` |
 | Downloads finais | `app.getPath('downloads')`, ou pasta escolhida |
 
-Não se gravam mídias ou preferências na instalação. Downloads de mesmo nome recebem sufixos numéricos. Só arquivos baixados pela sessão atual podem ser abertos pelo IPC. A desinstalação preserva downloads e dados pessoais. Os logs de produção registram códigos de ciclo de vida; saída de bibliotecas que pode conter URLs ou informações sensíveis é suprimida. Há rotação do log de 1 MiB na abertura.
+Não se gravam mídias ou preferências na instalação. O arquivo de cookies só existe quando o usuário escolhe conectar sua conta; logout o remove. Downloads de mesmo nome recebem sufixos numéricos. Só arquivos baixados pela sessão atual podem ser abertos pelo IPC. A desinstalação preserva downloads e dados pessoais. Os logs de produção registram códigos de ciclo de vida; saída de bibliotecas que pode conter URLs ou informações sensíveis é suprimida. Há rotação do log de 1 MiB na abertura.
 
 Ao fechar, downloads ativos são cancelados, Node recebe pedido de encerramento, Python recebe `/shutdown` autenticado, e temporários da sessão são removidos. Após o prazo de encerramento gracioso, `taskkill /T` é o fallback oculto para a árvore Python. Python também monitora o PID do Electron e sai se o pai terminar abruptamente. Na próxima abertura, pastas temporárias de sessões anteriores são limpas.
 
